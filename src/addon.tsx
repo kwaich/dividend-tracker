@@ -1,45 +1,56 @@
-import React from 'react';
-import type { AddonContext } from '@wealthfolio/addon-sdk';
-import { Card, CardContent, Icons } from '@wealthfolio/ui';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { AddonEnableFunction } from "@wealthfolio/addon-sdk";
+import { Icons } from "@wealthfolio/ui";
+import React from "react";
+import DividendPage from "./pages/dividend-page";
 
-function AddonExample({ ctx }: { ctx: AddonContext }) {
-  return (
-    <div className="p-6">
-      <Card>
-        <CardContent className="p-6">
-          <h1 className="text-2xl font-semibold mb-2">dividend-tracker</h1>
-          <p className="text-muted-foreground">
-            Welcome to your new Wealthfolio addon! Start building amazing features.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+const enable: AddonEnableFunction = (context) => {
+  context.api.logger.info("Dividend Tracker addon is being enabled!");
 
-export default function enable(ctx: AddonContext) {
-  // Add a sidebar item
-  const sidebarItem = ctx.sidebar.addItem({
-    id: 'dividend-tracker',
-    label: 'dividend-tracker',
-    icon: <Icons.Blocks className="h-5 w-5" />,
-    route: '/addon/dividend-tracker',
-    order: 100,
+  const addedItems: { remove: () => void }[] = [];
+
+  try {
+    const sidebarItem = context.sidebar.addItem({
+      id: "dividend-tracker",
+      label: "Dividends",
+      icon: <Icons.DollarSign className="h-4 w-4" />,
+      route: "/addons/dividend-tracker",
+      order: 160,
+    });
+    addedItems.push(sidebarItem);
+
+    context.router.add({
+      path: "/addons/dividend-tracker",
+      component: React.lazy(() =>
+        Promise.resolve({
+          default: () => {
+            const queryClient = context.api.query.getClient() as QueryClient;
+            return (
+              <QueryClientProvider client={queryClient}>
+                <DividendPage ctx={context} />
+              </QueryClientProvider>
+            );
+          },
+        }),
+      ),
+    });
+
+    context.api.logger.info("Dividend Tracker addon enabled successfully");
+  } catch (error) {
+    context.api.logger.error("Failed to initialize addon: " + (error as Error).message);
+    throw error;
+  }
+
+  context.onDisable(() => {
+    context.api.logger.info("Dividend Tracker addon is being disabled");
+    addedItems.forEach((item) => {
+      try {
+        item.remove();
+      } catch (error) {
+        context.api.logger.error("Error removing sidebar item: " + (error as Error).message);
+      }
+    });
   });
+};
 
-  // Add a route
-  const Wrapper = () => <AddonExample ctx={ctx} />;
-  ctx.router.add({
-    path: '/addon/dividend-tracker',
-    component: React.lazy(() => Promise.resolve({ default: Wrapper })),
-  });
-
-  // Cleanup on disable
-  ctx.onDisable(() => {
-    try {
-      sidebarItem.remove();
-    } catch (err) {
-      ctx.api.logger.error('Failed to remove sidebar item:', err);
-    }
-  });
-}
+export default enable;

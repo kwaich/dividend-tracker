@@ -7,32 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial addon structure and setup
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-## [1.0.0] - {{currentDate}}
+## [1.0.0] - 2026-03-02
 
 ### Added
-- Initial release of dividend-tracker addon
-- Basic addon functionality and core features
-- Integration with Wealthfolio addon SDK v1.0.0
-- Sidebar navigation integration for easy access
-- Responsive design for all screen sizes
-
-### Features
-- Find and add missing dividend activities by fetching historical data from Yahoo Finance
-- User-friendly interface
-- Compatible with Wealthfolio platform
-
-### Permissions
-- UI components access for sidebar and routing
+- Fetch up to 2 years of dividend history from Yahoo Finance (no API key required)
+- Quantity timeline: reconstructs share count at each ex-date from BUY/SELL/SPLIT/TRANSFER
+  activities, so only dividends you were eligible for are surfaced
+- Duplicate detection with ±3 day window to handle ex-date vs. pay-date differences
+- **Suggestions tab**: review missing dividends, edit amount or account inline, bulk-add
+- **History tab**: browse existing DIVIDEND activities most-recent-first
+- Unit tests for `quantity-timeline`, `is-duplicate`, `yahoo-dividends`, `history-tab`,
+  and `dividend-page`
