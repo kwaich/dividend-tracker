@@ -1,0 +1,19 @@
+{
+  "id": "dividend-tracker",
+  "name": "dividend-tracker",
+  "version": "1.0.0",
+  "description": "Find and add missing dividend activities by fetching historical data from Yahoo Finance",
+  "author": "kwaich",
+  "main": "dist/addon.js",
+  "sdkVersion": "1.0.0",
+  "enabled": true,
+  "permissions": [
+    {
+      "category": "ui",
+      "functions": ["sidebar.addItem"],
+      "purpose": "Add navigation items to the sidebar"
+    }
+  ],
+  "keywords": ["wealthfolio", "addon"],
+  "license": "MIT"
+}
