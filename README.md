@@ -3,6 +3,12 @@
 A Wealthfolio addon that finds missing dividend activities in your portfolio by
 fetching historical dividend data from Yahoo Finance.
 
+## Prerequisite
+
+This addon depends on Wealthfolio workspace packages (`@wealthfolio/ui`,
+`@wealthfolio/addon-sdk`, `@wealthfolio/addon-dev-tools`), so build/test commands
+should be run from a Wealthfolio workspace where those packages are available.
+
 ## What it does
 
 - Scans your current holdings for securities
@@ -55,7 +61,7 @@ pnpm --filter @wealthfolio/addon-sdk build
 pnpm bundle
 ```
 
-The zip is written to `dist/.
+The zip is written to `dist/`.
 
 ## Testing
 
