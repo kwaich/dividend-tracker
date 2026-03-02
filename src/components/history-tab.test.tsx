@@ -5,14 +5,14 @@ import type { ActivityDetails, AddonContext } from "@wealthfolio/addon-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HistoryTab from "./history-tab";
 
-vi.mock("@wealthfolio/ui", async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
+vi.mock("@wealthfolio/ui", async () => {
+  const actual = await vi.importActual<typeof import("@wealthfolio/ui")>("@wealthfolio/ui");
   return {
     ...actual,
     useBalancePrivacy: () => ({ isBalanceHidden: false }),
     formatAmount: (amount: number | string | null, currency: string) =>
       amount == null ? "-" : `${currency}:${Number(amount).toFixed(2)}`,
-  };
+  } as typeof actual;
 });
 
 afterEach(() => cleanup());
