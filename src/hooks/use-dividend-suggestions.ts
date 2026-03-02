@@ -21,41 +21,47 @@ export function useDividendSuggestions(ctx: AddonContext): {
   const { holdings, isLoading: holdingsLoading } = useHoldingsByAccount(ctx, accounts);
   const { existingDivs, isLoading: existingDivsLoading } = useExistingDividends(ctx);
 
-  // Build symbol → { accountIds, currency, assetId } + derived lists
+  // Build assetId-keyed entries to avoid same ticker collisions across exchanges
   const { symbolMap, symbols, instrumentIds } = useMemo(() => {
     const securityHoldings = holdings.filter(
       (h) => h.holdingType === "security" && h.instrument?.symbol,
     );
 
-    const map = new Map<string, { accountIds: string[]; currency: string; assetId: string }>();
+    const map = new Map<
+      string,
+      { symbol: string; accountIds: string[]; currency: string; assetId: string }
+    >();
     for (const h of securityHoldings) {
-      const sym = h.instrument!.symbol;
-      if (!map.has(sym)) {
-        map.set(sym, {
+      const assetId = h.instrument!.id;
+      const symbol = h.instrument!.symbol;
+      if (!map.has(assetId)) {
+        map.set(assetId, {
+          symbol,
           accountIds: [],
           currency: h.instrument!.currency,
-          assetId: h.instrument!.id,
+          assetId,
         });
       }
-      const entry = map.get(sym)!;
+      const entry = map.get(assetId)!;
       if (!entry.accountIds.includes(h.accountId)) {
         entry.accountIds.push(h.accountId);
       }
     }
 
+    const ids = Array.from(map.keys());
     return {
       symbolMap: map,
-      symbols: Array.from(map.keys()),
-      instrumentIds: [...new Set(securityHoldings.map((h) => h.instrument!.id))],
+      symbols: ids,
+      instrumentIds: ids,
     };
   }, [holdings]);
 
   const { profiles, allLoaded: allProfilesLoaded } = useAssetProfiles(ctx, instrumentIds);
 
-  // Map instrument symbol → Yahoo symbol (adjusted for exchange suffix)
+  // Map assetId key → Yahoo symbol (adjusted for exchange suffix)
   const yahooSymbolMap = useMemo(() => {
     const map = new Map<string, string>();
-    instrumentIds.forEach((_, i) => {
+    instrumentIds.forEach((instrumentId, i) => {
       const asset = profiles[i];
       if (!asset?.instrumentSymbol) return;
       const yahooSymbol = toYahooSymbol(asset.instrumentSymbol, asset.instrumentExchangeMic);
@@ -64,7 +70,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
           `Mapped ${asset.instrumentSymbol} → ${yahooSymbol} (MIC: ${asset.instrumentExchangeMic})`,
         );
       }
-      map.set(asset.instrumentSymbol, yahooSymbol);
+      map.set(instrumentId, yahooSymbol);
     });
     return map;
   }, [instrumentIds, profiles, ctx.api.logger]);
@@ -84,27 +90,39 @@ export function useDividendSuggestions(ctx: AddonContext): {
   // Build (symbol::accountId) → QuantityCheckpoint[] timelines
   const quantityTimelines = useMemo(() => {
     const map = new Map<string, ReturnType<typeof buildQuantityTimeline>>();
-    symbols.forEach((symbol) => {
-      const activities = positionData.get(symbol) ?? [];
-      const entry = symbolMap.get(symbol);
+    symbols.forEach((symbolKey) => {
+      const activities = positionData.get(symbolKey) ?? [];
+      const entry = symbolMap.get(symbolKey);
       if (!entry) return;
       for (const accountId of entry.accountIds) {
-        map.set(`${symbol}::${accountId}`, buildQuantityTimeline(activities, accountId));
+        map.set(`${symbolKey}::${accountId}`, buildQuantityTimeline(activities, accountId));
       }
     });
     return map;
   }, [positionData, symbols, symbolMap]);
+
+  const symbolAccountCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of symbolMap.values()) {
+      const symbolKey = entry.symbol.toUpperCase();
+      for (const accountId of entry.accountIds) {
+        const key = `${symbolKey}::${accountId}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [symbolMap]);
 
   const suggestions = useMemo(() => {
     if (!allYahooLoaded || !existingDivs || !allPositionLoaded) return [];
 
     const result: DividendSuggestion[] = [];
 
-    symbols.forEach((symbol) => {
-      const divs = yahooData.get(symbol);
+    symbols.forEach((symbolKey) => {
+      const divs = yahooData.get(symbolKey);
       if (!divs) return;
 
-      const entry = symbolMap.get(symbol);
+      const entry = symbolMap.get(symbolKey);
       if (!entry) return;
 
       for (const div of divs) {
@@ -112,15 +130,23 @@ export function useDividendSuggestions(ctx: AddonContext): {
         const dateStr = new Date(dateMs).toISOString().slice(0, 10);
 
         for (const accountId of entry.accountIds) {
-          const timeline = quantityTimelines.get(`${symbol}::${accountId}`) ?? [];
+          const timeline = quantityTimelines.get(`${symbolKey}::${accountId}`) ?? [];
           const shares = getQuantityAtDate(timeline, dateStr);
 
           if (shares <= 0) continue;
 
-          if (!isDuplicate(symbol, dateMs, accountId, existingDivs)) {
+          const symbolAccountKey = `${entry.symbol.toUpperCase()}::${accountId}`;
+          const hasAmbiguousSymbolInAccount = (symbolAccountCounts.get(symbolAccountKey) ?? 0) > 1;
+
+          if (
+            !isDuplicate(entry.assetId, entry.symbol, dateMs, accountId, existingDivs, {
+              allowSymbolFallback: !hasAmbiguousSymbolInAccount,
+            })
+          ) {
             result.push({
-              id: `${symbol}-${dateStr}-${accountId}`,
-              symbol,
+              id: `${entry.assetId}-${dateStr}-${accountId}`,
+              symbol: entry.symbol,
+              assetId: entry.assetId,
               date: dateStr,
               shares,
               dividendPerShare: div.amount,
@@ -142,6 +168,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
     existingDivs,
     symbols,
     symbolMap,
+    symbolAccountCounts,
     yahooData,
     quantityTimelines,
   ]);

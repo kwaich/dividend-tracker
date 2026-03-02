@@ -6,8 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import HistoryTab from "./history-tab";
 
 vi.mock("@wealthfolio/ui", async (importOriginal) => {
-  const actual = await importOriginal();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     useBalancePrivacy: () => ({ isBalanceHidden: false }),

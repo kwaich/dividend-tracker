@@ -6,7 +6,10 @@ import { POSITION_ACTIVITY_TYPES } from "../lib/quantity-timeline";
 export function usePositionActivities(
   ctx: AddonContext,
   symbols: string[],
-  symbolMap: Map<string, { accountIds: string[]; currency: string; assetId: string }>,
+  symbolMap: Map<
+    string,
+    { symbol: string; accountIds: string[]; currency: string; assetId: string }
+  >,
 ): { data: Map<string, ActivityDetails[]>; allLoaded: boolean } {
   const queries = useQueries({
     queries: useMemo(

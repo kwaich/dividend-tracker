@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import type { LoggerAPI } from "@wealthfolio/addon-sdk";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchYahooDividends, toYahooSymbol } from "./yahoo-dividends";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { HostAPI } from "@wealthfolio/addon-sdk";
+import { fetchYahooDividends, toYahooSymbol, type YahooDividend } from "./yahoo-dividends";
 
 describe("toYahooSymbol", () => {
   it("returns symbol unchanged when no MIC provided", () => {
@@ -58,78 +58,31 @@ describe("toYahooSymbol", () => {
 });
 
 describe("fetchYahooDividends", () => {
-  const mockLogger: LoggerAPI = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    trace: vi.fn(),
-  };
+  const fetchDividendsMock = vi.fn<(symbol: string) => Promise<YahooDividend[]>>();
+  const mockMarket = { fetchDividends: fetchDividendsMock } as unknown as HostAPI["market"];
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    delete (globalThis as Record<string, unknown>).__TAURI__;
+  it("delegates to market.fetchDividends with the symbol", async () => {
+    fetchDividendsMock.mockResolvedValue([]);
+    await fetchYahooDividends("AAPL.TO", mockMarket);
+    expect(fetchDividendsMock).toHaveBeenCalledWith("AAPL.TO");
   });
 
-  it("throws when Tauri invoke is not available", async () => {
-    await expect(fetchYahooDividends("AAPL", mockLogger)).rejects.toThrow(
-      "Tauri invoke not available",
-    );
-    expect(mockLogger.error).toHaveBeenCalledWith("Tauri invoke not available");
-  });
-
-  it("calls Tauri invoke with correct command and symbol", async () => {
-    const mockInvoke = vi.fn().mockResolvedValue([]);
-    (globalThis as Record<string, unknown>).__TAURI__ = {
-      core: { invoke: mockInvoke },
-    };
-
-    await fetchYahooDividends("AAPL.TO", mockLogger);
-
-    expect(mockInvoke).toHaveBeenCalledWith("fetch_yahoo_dividends", {
-      symbol: "AAPL.TO",
-    });
-  });
-
-  it("returns dividend data on success", async () => {
+  it("returns dividend data from market.fetchDividends", async () => {
     const dividends = [
       { amount: 0.25, date: 1718841600 },
       { amount: 0.25, date: 1726704000 },
     ];
-    const mockInvoke = vi.fn().mockResolvedValue(dividends);
-    (globalThis as Record<string, unknown>).__TAURI__ = {
-      core: { invoke: mockInvoke },
-    };
-
-    const result = await fetchYahooDividends("AAPL", mockLogger);
-
+    fetchDividendsMock.mockResolvedValue(dividends);
+    const result = await fetchYahooDividends("AAPL", mockMarket);
     expect(result).toEqual(dividends);
-    expect(mockLogger.debug).toHaveBeenCalledWith("Found 2 dividends for AAPL");
   });
 
-  it("propagates error when invoke throws", async () => {
-    const mockInvoke = vi.fn().mockRejectedValue(new Error("Network error"));
-    (globalThis as Record<string, unknown>).__TAURI__ = {
-      core: { invoke: mockInvoke },
-    };
-
-    await expect(fetchYahooDividends("AAPL", mockLogger)).rejects.toThrow("Network error");
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      "Failed to fetch dividends for AAPL: Error: Network error",
-    );
-  });
-
-  it("logs debug message before fetching", async () => {
-    const mockInvoke = vi.fn().mockResolvedValue([]);
-    (globalThis as Record<string, unknown>).__TAURI__ = {
-      core: { invoke: mockInvoke },
-    };
-
-    await fetchYahooDividends("RY.TO", mockLogger);
-
-    expect(mockLogger.debug).toHaveBeenCalledWith("Fetching dividends for RY.TO");
+  it("propagates error from market.fetchDividends", async () => {
+    fetchDividendsMock.mockRejectedValue(new Error("Network error"));
+    await expect(fetchYahooDividends("AAPL", mockMarket)).rejects.toThrow("Network error");
   });
 });

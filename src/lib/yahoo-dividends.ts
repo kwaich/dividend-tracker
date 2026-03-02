@@ -59,39 +59,13 @@ export function toYahooSymbol(symbol: string, mic?: string | null): string {
   return symbol + suffix;
 }
 
-import type { HostAPI } from "@wealthfolio/addon-sdk";
+import type { HostAPI, YahooDividend } from "@wealthfolio/addon-sdk";
 
-export interface YahooDividend {
-  amount: number;
-  date: number; // unix seconds
-}
-
-type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
-
-function getTauriInvoke(): TauriInvoke | null {
-  const tauri = (window as unknown as { __TAURI__?: { core?: { invoke?: TauriInvoke } } })
-    .__TAURI__;
-  return tauri?.core?.invoke ?? null;
-}
+export type { YahooDividend };
 
 export async function fetchYahooDividends(
   symbol: string,
-  logger: HostAPI["logger"],
+  market: HostAPI["market"],
 ): Promise<YahooDividend[]> {
-  logger.debug(`Fetching dividends for ${symbol}`);
-
-  const invoke = getTauriInvoke();
-  if (!invoke) {
-    logger.error("Tauri invoke not available");
-    throw new Error("Tauri invoke not available");
-  }
-
-  try {
-    const data = (await invoke("fetch_yahoo_dividends", { symbol })) as YahooDividend[];
-    logger.debug(`Found ${data.length} dividends for ${symbol}`);
-    return data;
-  } catch (err) {
-    logger.error(`Failed to fetch dividends for ${symbol}: ${String(err)}`);
-    throw err;
-  }
+  return market.fetchDividends(symbol);
 }

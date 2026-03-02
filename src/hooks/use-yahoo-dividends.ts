@@ -21,13 +21,13 @@ export function useYahooDividends(
         symbols.map((symbol) => ({
           // eslint-disable-next-line @tanstack/query/exhaustive-deps
           queryKey: ["yahoo-dividends", symbol],
-          queryFn: () => fetchYahooDividends(yahooSymbolMap.get(symbol) ?? symbol, ctx.api.logger),
+          queryFn: () => fetchYahooDividends(yahooSymbolMap.get(symbol) ?? symbol, ctx.api.market),
           enabled,
           staleTime: 30 * 60 * 1000,
           retry: 1,
         })),
       // yahooSymbolMap is rebuilt when profiles load; symbols drives query count
-      [symbols, yahooSymbolMap, ctx.api.logger, enabled],
+      [symbols, yahooSymbolMap, ctx.api.market, enabled],
     ),
   });
 

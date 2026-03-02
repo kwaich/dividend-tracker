@@ -1,6 +1,7 @@
 export interface DividendSuggestion {
   id: string;
   symbol: string;
+  assetId: string;
   date: string; // YYYY-MM-DD
   shares: number;
   dividendPerShare: number;
