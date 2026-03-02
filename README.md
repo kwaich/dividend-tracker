@@ -77,6 +77,7 @@ pnpm dev:server
 ## Screenshots
 
 ![image](https://github.com/user-attachments/assets/bebcb3a7-62ba-4049-9ad6-66204bd5f566)
+![image](https://github.com/user-attachments/assets/07acbacc-b5bf-4a69-8496-b81d40a6e869)
 
 ## Notes
 
