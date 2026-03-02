@@ -149,7 +149,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
 
         for (const accountId of entry.accountIds) {
           const timeline = quantityTimelines.get(`${symbolKey}::${accountId}`);
-          const shares = getQuantityAtDate(timeline ?? [], dateMs);
+          const shares = getQuantityAtDate(timeline ?? [], dateStr);
 
           if (shares <= 0) continue;
 
