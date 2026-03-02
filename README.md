@@ -74,6 +74,10 @@ VITE_ENABLE_ADDON_DEV_MODE=true pnpm tauri dev
 pnpm dev:server
 ```
 
+## Screenshots
+
+![image](https://github.com/user-attachments/assets/bebcb3a7-62ba-4049-9ad6-66204bd5f566)
+
 ## Notes
 
 - Yahoo Finance data is fetched directly from the Tauri webview, which has no
