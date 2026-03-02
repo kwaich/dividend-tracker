@@ -9,7 +9,9 @@ interface DuplicateMatchOptions {
 function getEffectiveDateMs(a: ActivityDetails): number {
   // If saved with a pay-date override, the ex-date is stored in comment as "ex-date:YYYY-MM-DD"
   const match =
-    typeof a.comment === "string" ? /ex-date:(\d{4}-\d{2}-\d{2})/.exec(a.comment) : null;
+    typeof a.comment === "string"
+      ? /ex-date:(\d{4}-\d{2}-\d{2})/.exec(a.comment)
+      : null;
   if (match) return new Date(match[1] + "T00:00:00").getTime();
   return new Date(a.date).getTime();
 }
@@ -28,7 +30,8 @@ export function isDuplicate(
     if (a.accountId !== accountId) return false;
 
     const sameAssetId = typeof a.assetId === "string" && a.assetId === assetId;
-    const sameSymbol = (a.assetSymbol ?? "").toUpperCase() === symbol.toUpperCase();
+    const sameSymbol =
+      (a.assetSymbol ?? "").toUpperCase() === symbol.toUpperCase();
     const sameAsset = sameAssetId || (allowSymbolFallback && sameSymbol);
     if (!sameAsset) return false;
 

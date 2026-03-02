@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostAPI } from "@wealthfolio/addon-sdk";
-import { fetchYahooDividends, toYahooSymbol, type YahooDividend } from "./yahoo-dividends";
+import {
+  fetchYahooDividends,
+  toYahooSymbol,
+  type YahooDividend,
+} from "./yahoo-dividends";
 
 describe("toYahooSymbol", () => {
   it("returns symbol unchanged when no MIC provided", () => {
@@ -58,8 +62,11 @@ describe("toYahooSymbol", () => {
 });
 
 describe("fetchYahooDividends", () => {
-  const fetchDividendsMock = vi.fn<(symbol: string) => Promise<YahooDividend[]>>();
-  const mockMarket = { fetchDividends: fetchDividendsMock } as unknown as HostAPI["market"];
+  const fetchDividendsMock =
+    vi.fn<(symbol: string) => Promise<YahooDividend[]>>();
+  const mockMarket = {
+    fetchDividends: fetchDividendsMock,
+  } as unknown as HostAPI["market"];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +90,8 @@ describe("fetchYahooDividends", () => {
 
   it("propagates error from market.fetchDividends", async () => {
     fetchDividendsMock.mockRejectedValue(new Error("Network error"));
-    await expect(fetchYahooDividends("AAPL", mockMarket)).rejects.toThrow("Network error");
+    await expect(fetchYahooDividends("AAPL", mockMarket)).rejects.toThrow(
+      "Network error",
+    );
   });
 });

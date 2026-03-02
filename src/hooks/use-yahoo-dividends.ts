@@ -14,14 +14,22 @@ export function useYahooDividends(
   symbols: string[],
   yahooSymbolMap: Map<string, string>,
   enabled: boolean,
-): { data: Map<string, YahooDividend[]>; allLoaded: boolean; errors: YahooDividendError[] } {
+): {
+  data: Map<string, YahooDividend[]>;
+  allLoaded: boolean;
+  errors: YahooDividendError[];
+} {
   const queries = useQueries({
     queries: useMemo(
       () =>
         symbols.map((symbol) => ({
           // eslint-disable-next-line @tanstack/query/exhaustive-deps
           queryKey: ["yahoo-dividends", symbol],
-          queryFn: () => fetchYahooDividends(yahooSymbolMap.get(symbol) ?? symbol, ctx.api.market),
+          queryFn: () =>
+            fetchYahooDividends(
+              yahooSymbolMap.get(symbol) ?? symbol,
+              ctx.api.market,
+            ),
           enabled,
           staleTime: 30 * 60 * 1000,
           retry: 1,

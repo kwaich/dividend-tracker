@@ -89,7 +89,13 @@ vi.mock("./use-position-activities", () => ({
 function makeCtx(): AddonContext {
   return {
     api: {
-      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), trace: vi.fn() },
+      logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        trace: vi.fn(),
+      },
     },
   } as unknown as AddonContext;
 }

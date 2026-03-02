@@ -152,10 +152,17 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
       }
 
       if (totalErrors > 0) {
-        const detail = errorMessages.length > 0 ? `\n${errorMessages.slice(0, 3).join("\n")}` : "";
-        ctx.api.toast.warning(`${totalCreated} added, ${totalErrors} failed${detail}`);
+        const detail =
+          errorMessages.length > 0
+            ? `\n${errorMessages.slice(0, 3).join("\n")}`
+            : "";
+        ctx.api.toast.warning(
+          `${totalCreated} added, ${totalErrors} failed${detail}`,
+        );
       } else {
-        ctx.api.toast.success(`${totalCreated} dividend${totalCreated !== 1 ? "s" : ""} added`);
+        ctx.api.toast.success(
+          `${totalCreated} dividend${totalCreated !== 1 ? "s" : ""} added`,
+        );
       }
 
       ctx.api.query.invalidateQueries(["activities"]);
@@ -171,7 +178,8 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
     errors.length > 0 ? (
       <Alert variant="destructive" className="mb-4">
         <AlertDescription>
-          Failed to fetch dividend data for: {errors.map((e) => e.symbol).join(", ")}.
+          Failed to fetch dividend data for:{" "}
+          {errors.map((e) => e.symbol).join(", ")}.
           <Button
             variant="link"
             size="sm"
@@ -213,7 +221,8 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
       {errorBanner}
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {suggestions.length} missing dividend{suggestions.length !== 1 ? "s" : ""} found
+          {suggestions.length} missing dividend
+          {suggestions.length !== 1 ? "s" : ""} found
         </p>
         <Button onClick={handleSave} disabled={saving || checkedIds.size === 0}>
           {saving ? "Saving..." : `Add Selected (${checkedIds.size})`}
@@ -246,8 +255,12 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
                     onCheckedChange={() => toggleCheck(s.id)}
                   />
                 </TableCell>
-                <TableCell className="font-mono font-medium">{s.symbol}</TableCell>
-                <TableCell>{format(new Date(s.date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
+                <TableCell className="font-mono font-medium">
+                  {s.symbol}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(s.date + "T00:00:00"), "MMM d, yyyy")}
+                </TableCell>
                 <TableCell>
                   <DatePickerInput
                     value={s.payDate}
@@ -256,7 +269,9 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
                   />
                 </TableCell>
                 <TableCell className="text-right">{s.shares}</TableCell>
-                <TableCell className="text-right">{s.dividendPerShare.toFixed(4)}</TableCell>
+                <TableCell className="text-right">
+                  {s.dividendPerShare.toFixed(4)}
+                </TableCell>
                 <TableCell>
                   <Input
                     type="number"
@@ -270,9 +285,14 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
                 <TableCell>{s.currency}</TableCell>
                 <TableCell>
                   {s.availableAccountIds.length === 1 ? (
-                    <span>{accountNameMap.get(s.accountId) ?? s.accountId}</span>
+                    <span>
+                      {accountNameMap.get(s.accountId) ?? s.accountId}
+                    </span>
                   ) : (
-                    <Select value={s.accountId} onValueChange={(val) => updateAccount(s.id, val)}>
+                    <Select
+                      value={s.accountId}
+                      onValueChange={(val) => updateAccount(s.id, val)}
+                    >
                       <SelectTrigger className="w-44">
                         <SelectValue />
                       </SelectTrigger>

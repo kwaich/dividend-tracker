@@ -1,7 +1,13 @@
 import type { ActivityDetails } from "@wealthfolio/addon-sdk";
 
 /** Activity types that affect share quantity in a position */
-export const POSITION_ACTIVITY_TYPES = ["BUY", "SELL", "SPLIT", "TRANSFER_IN", "TRANSFER_OUT"];
+export const POSITION_ACTIVITY_TYPES = [
+  "BUY",
+  "SELL",
+  "SPLIT",
+  "TRANSFER_IN",
+  "TRANSFER_OUT",
+];
 
 export interface QuantityCheckpoint {
   date: string; // YYYY-MM-DD
@@ -51,7 +57,10 @@ export function buildQuantityTimeline(
  * Returns the quantity held at (just before) a given date from the timeline.
  * If no activity exists before the date, returns 0.
  */
-export function getQuantityAtDate(timeline: QuantityCheckpoint[], targetDate: string): number {
+export function getQuantityAtDate(
+  timeline: QuantityCheckpoint[],
+  targetDate: string,
+): number {
   if (timeline.length === 0) return 0;
 
   // Binary search for the last checkpoint at or before targetDate

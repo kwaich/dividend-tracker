@@ -1,5 +1,9 @@
 import { useQueries } from "@tanstack/react-query";
-import { QueryKeys, type AddonContext, type Asset } from "@wealthfolio/addon-sdk";
+import {
+  QueryKeys,
+  type AddonContext,
+  type Asset,
+} from "@wealthfolio/addon-sdk";
 import { useMemo } from "react";
 
 export function useAssetProfiles(
@@ -18,7 +22,8 @@ export function useAssetProfiles(
     ),
   });
 
-  const allLoaded = instrumentIds.length === 0 || queries.every((q) => !q.isLoading);
+  const allLoaded =
+    instrumentIds.length === 0 || queries.every((q) => !q.isLoading);
 
   const profiles = useMemo(
     () => queries.map((q) => q.data),

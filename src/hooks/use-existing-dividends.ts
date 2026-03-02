@@ -21,7 +21,8 @@ export function useExistingDividends(ctx: AddonContext): {
           "",
         );
         allData.push(...res.data);
-        if (res.data.length === 0 || allData.length >= res.meta.totalRowCount) break;
+        if (res.data.length === 0 || allData.length >= res.meta.totalRowCount)
+          break;
         page++;
       }
 

@@ -1,7 +1,10 @@
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { useMemo } from "react";
 import { isDuplicate } from "../lib/is-duplicate";
-import { buildQuantityTimeline, getQuantityAtDate } from "../lib/quantity-timeline";
+import {
+  buildQuantityTimeline,
+  getQuantityAtDate,
+} from "../lib/quantity-timeline";
 import { toYahooSymbol } from "../lib/yahoo-dividends";
 import type { DividendSuggestion } from "../types";
 import { useAccounts } from "./use-accounts";
@@ -18,8 +21,12 @@ export function useDividendSuggestions(ctx: AddonContext): {
   errors: { symbol: string; error: Error }[];
 } {
   const { accounts, isLoading: accountsLoading } = useAccounts(ctx);
-  const { holdings, isLoading: holdingsLoading } = useHoldingsByAccount(ctx, accounts);
-  const { existingDivs, isLoading: existingDivsLoading } = useExistingDividends(ctx);
+  const { holdings, isLoading: holdingsLoading } = useHoldingsByAccount(
+    ctx,
+    accounts,
+  );
+  const { existingDivs, isLoading: existingDivsLoading } =
+    useExistingDividends(ctx);
 
   // Build assetId-keyed entries to avoid same ticker collisions across exchanges
   const { symbolMap, symbols, instrumentIds } = useMemo(() => {
@@ -29,7 +36,12 @@ export function useDividendSuggestions(ctx: AddonContext): {
 
     const map = new Map<
       string,
-      { symbol: string; accountIds: string[]; currency: string; assetId: string }
+      {
+        symbol: string;
+        accountIds: string[];
+        currency: string;
+        assetId: string;
+      }
     >();
     for (const h of securityHoldings) {
       const assetId = h.instrument!.id;
@@ -56,7 +68,10 @@ export function useDividendSuggestions(ctx: AddonContext): {
     };
   }, [holdings]);
 
-  const { profiles, allLoaded: allProfilesLoaded } = useAssetProfiles(ctx, instrumentIds);
+  const { profiles, allLoaded: allProfilesLoaded } = useAssetProfiles(
+    ctx,
+    instrumentIds,
+  );
 
   // Map assetId key → Yahoo symbol (adjusted for exchange suffix)
   const yahooSymbolMap = useMemo(() => {
@@ -64,7 +79,10 @@ export function useDividendSuggestions(ctx: AddonContext): {
     instrumentIds.forEach((instrumentId, i) => {
       const asset = profiles[i];
       if (!asset?.instrumentSymbol) return;
-      const yahooSymbol = toYahooSymbol(asset.instrumentSymbol, asset.instrumentExchangeMic);
+      const yahooSymbol = toYahooSymbol(
+        asset.instrumentSymbol,
+        asset.instrumentExchangeMic,
+      );
       if (yahooSymbol !== asset.instrumentSymbol) {
         ctx.api.logger.debug(
           `Mapped ${asset.instrumentSymbol} → ${yahooSymbol} (MIC: ${asset.instrumentExchangeMic})`,
@@ -81,11 +99,8 @@ export function useDividendSuggestions(ctx: AddonContext): {
     errors,
   } = useYahooDividends(ctx, symbols, yahooSymbolMap, allProfilesLoaded);
 
-  const { data: positionData, allLoaded: allPositionLoaded } = usePositionActivities(
-    ctx,
-    symbols,
-    symbolMap,
-  );
+  const { data: positionData, allLoaded: allPositionLoaded } =
+    usePositionActivities(ctx, symbols, symbolMap);
 
   // Build (symbol::accountId) → QuantityCheckpoint[] timelines
   const quantityTimelines = useMemo(() => {
@@ -95,7 +110,10 @@ export function useDividendSuggestions(ctx: AddonContext): {
       const entry = symbolMap.get(symbolKey);
       if (!entry) return;
       for (const accountId of entry.accountIds) {
-        map.set(`${symbolKey}::${accountId}`, buildQuantityTimeline(activities, accountId));
+        map.set(
+          `${symbolKey}::${accountId}`,
+          buildQuantityTimeline(activities, accountId),
+        );
       }
     });
     return map;
@@ -130,18 +148,26 @@ export function useDividendSuggestions(ctx: AddonContext): {
         const dateStr = new Date(dateMs).toISOString().slice(0, 10);
 
         for (const accountId of entry.accountIds) {
-          const timeline = quantityTimelines.get(`${symbolKey}::${accountId}`) ?? [];
-          const shares = getQuantityAtDate(timeline, dateStr);
+          const timeline = quantityTimelines.get(`${symbolKey}::${accountId}`);
+          const shares = getQuantityAtDate(timeline ?? [], dateMs);
 
           if (shares <= 0) continue;
 
           const symbolAccountKey = `${entry.symbol.toUpperCase()}::${accountId}`;
-          const hasAmbiguousSymbolInAccount = (symbolAccountCounts.get(symbolAccountKey) ?? 0) > 1;
+          const hasAmbiguousSymbolInAccount =
+            (symbolAccountCounts.get(symbolAccountKey) ?? 0) > 1;
 
           if (
-            !isDuplicate(entry.assetId, entry.symbol, dateMs, accountId, existingDivs, {
-              allowSymbolFallback: !hasAmbiguousSymbolInAccount,
-            })
+            !isDuplicate(
+              entry.assetId,
+              entry.symbol,
+              dateMs,
+              accountId,
+              existingDivs,
+              {
+                allowSymbolFallback: !hasAmbiguousSymbolInAccount,
+              },
+            )
           ) {
             result.push({
               id: `${entry.assetId}-${dateStr}-${accountId}`,
@@ -181,7 +207,10 @@ export function useDividendSuggestions(ctx: AddonContext): {
     !allYahooLoaded ||
     !allPositionLoaded;
 
-  const accountNameMap = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
+  const accountNameMap = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a.name])),
+    [accounts],
+  );
 
   return { suggestions, isLoading, accountNameMap, errors };
 }

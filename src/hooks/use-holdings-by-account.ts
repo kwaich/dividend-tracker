@@ -20,7 +20,10 @@ export function useHoldingsByAccount(
 
   const isLoading = accounts.length > 0 && queries.some((q) => q.isLoading);
   // eslint-disable-next-line @tanstack/query/no-unstable-deps
-  const holdings = useMemo(() => queries.flatMap((q) => q.data ?? []), [queries]);
+  const holdings = useMemo(
+    () => queries.flatMap((q) => q.data ?? []),
+    [queries],
+  );
 
   return { holdings, isLoading };
 }

@@ -37,7 +37,9 @@ const enable: AddonEnableFunction = (context) => {
 
     context.api.logger.info("Dividend Tracker addon enabled successfully");
   } catch (error) {
-    context.api.logger.error("Failed to initialize addon: " + (error as Error).message);
+    context.api.logger.error(
+      "Failed to initialize addon: " + (error as Error).message,
+    );
     throw error;
   }
 
@@ -47,7 +49,9 @@ const enable: AddonEnableFunction = (context) => {
       try {
         item.remove();
       } catch (error) {
-        context.api.logger.error("Error removing sidebar item: " + (error as Error).message);
+        context.api.logger.error(
+          "Error removing sidebar item: " + (error as Error).message,
+        );
       }
     });
   });

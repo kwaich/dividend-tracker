@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import HistoryTab from "./history-tab";
 
 vi.mock("@wealthfolio/ui", async () => {
-  const actual = await vi.importActual<typeof import("@wealthfolio/ui")>("@wealthfolio/ui");
+  const actual =
+    await vi.importActual<typeof import("@wealthfolio/ui")>("@wealthfolio/ui");
   return {
     ...actual,
     useBalancePrivacy: () => ({ isBalanceHidden: false }),
@@ -18,7 +19,10 @@ vi.mock("@wealthfolio/ui", async () => {
 afterEach(() => cleanup());
 
 function makeCtx(
-  searchResult: { data: ActivityDetails[]; meta?: { totalRowCount: number } } = { data: [] },
+  searchResult: {
+    data: ActivityDetails[];
+    meta?: { totalRowCount: number };
+  } = { data: [] },
 ): AddonContext {
   const meta = searchResult.meta ?? { totalRowCount: searchResult.data.length };
   return {
@@ -26,7 +30,13 @@ function makeCtx(
       activities: {
         search: vi.fn().mockResolvedValue({ data: searchResult.data, meta }),
       },
-      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), trace: vi.fn() },
+      logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        trace: vi.fn(),
+      },
     },
   } as unknown as AddonContext;
 }
@@ -35,7 +45,9 @@ function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
 }
 
 describe("HistoryTab", () => {
@@ -45,7 +57,13 @@ describe("HistoryTab", () => {
         activities: {
           search: vi.fn().mockReturnValue(new Promise(() => undefined)),
         },
-        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), trace: vi.fn() },
+        logger: {
+          debug: vi.fn(),
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+          trace: vi.fn(),
+        },
       },
     } as unknown as AddonContext;
 
@@ -56,7 +74,9 @@ describe("HistoryTab", () => {
   it("shows empty state when no dividends found", async () => {
     const ctx = makeCtx({ data: [] });
     renderWithQuery(<HistoryTab ctx={ctx} />);
-    expect(await screen.findByText("No dividend activities found.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No dividend activities found."),
+    ).toBeInTheDocument();
   });
 
   it("renders dividend activity rows", async () => {
@@ -160,7 +180,10 @@ describe("HistoryTab", () => {
         subtype: null,
       } as ActivityDetails,
     ];
-    const ctxWithMore = makeCtx({ data: activities, meta: { totalRowCount: 350 } });
+    const ctxWithMore = makeCtx({
+      data: activities,
+      meta: { totalRowCount: 350 },
+    });
     renderWithQuery(<HistoryTab ctx={ctxWithMore} />);
 
     expect(await screen.findByText(/Showing 200 of 350/)).toBeInTheDocument();

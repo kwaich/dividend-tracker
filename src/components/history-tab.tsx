@@ -28,14 +28,23 @@ const PAGE_SIZE = 200;
 type SortKey = "date" | "assetSymbol" | "accountName" | "amount";
 type SortDir = "asc" | "desc";
 
-function SortIcon({ col, sort }: { col: SortKey; sort: { key: SortKey; dir: SortDir } }) {
+function SortIcon({
+  col,
+  sort,
+}: {
+  col: SortKey;
+  sort: { key: SortKey; dir: SortDir };
+}) {
   if (sort.key !== col) return <span className="ml-1 opacity-30">↕</span>;
   return <span className="ml-1">{sort.dir === "asc" ? "↑" : "↓"}</span>;
 }
 
 export default function HistoryTab({ ctx }: HistoryTabProps) {
   const { isBalanceHidden } = useBalancePrivacy();
-  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "date", dir: "desc" });
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({
+    key: "date",
+    dir: "desc",
+  });
   const [accountFilter, setAccountFilter] = useState<string>("all");
 
   const { data, isLoading } = useQuery({
@@ -82,7 +91,10 @@ export default function HistoryTab({ ctx }: HistoryTabProps) {
   const currencyTotals = useMemo(() => {
     const totals = new Map<string, number>();
     for (const a of filteredSorted) {
-      totals.set(a.currency, (totals.get(a.currency) ?? 0) + Number(a.amount ?? 0));
+      totals.set(
+        a.currency,
+        (totals.get(a.currency) ?? 0) + Number(a.amount ?? 0),
+      );
     }
     return totals;
   }, [filteredSorted]);
@@ -95,7 +107,11 @@ export default function HistoryTab({ ctx }: HistoryTabProps) {
   }
 
   if (isLoading) {
-    return <div className="text-muted-foreground py-12 text-center text-sm">Loading...</div>;
+    return (
+      <div className="text-muted-foreground py-12 text-center text-sm">
+        Loading...
+      </div>
+    );
   }
 
   if (!data || data.data.length === 0) {
@@ -184,19 +200,33 @@ export default function HistoryTab({ ctx }: HistoryTabProps) {
                 <TableCell className="font-mono">{a.assetSymbol}</TableCell>
                 <TableCell>{a.accountName}</TableCell>
                 <TableCell>
-                  {isBalanceHidden ? "••••" : formatAmount(Number(a.amount ?? 0), a.currency)}
+                  {isBalanceHidden
+                    ? "••••"
+                    : formatAmount(Number(a.amount ?? 0), a.currency)}
                 </TableCell>
                 <TableCell>
-                  {a.subtype ? <Badge variant="secondary">{a.subtype}</Badge> : "—"}
+                  {a.subtype ? (
+                    <Badge variant="secondary">{a.subtype}</Badge>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
               </TableRow>
             ))}
             {Array.from(currencyTotals.entries()).map(([currency, total]) => (
-              <TableRow key={`total-${currency}`} className="bg-muted/50 font-medium">
-                <TableCell colSpan={3} className="text-muted-foreground text-right text-xs">
+              <TableRow
+                key={`total-${currency}`}
+                className="bg-muted/50 font-medium"
+              >
+                <TableCell
+                  colSpan={3}
+                  className="text-muted-foreground text-right text-xs"
+                >
                   {currency} total
                 </TableCell>
-                <TableCell>{isBalanceHidden ? "••••" : formatAmount(total, currency)}</TableCell>
+                <TableCell>
+                  {isBalanceHidden ? "••••" : formatAmount(total, currency)}
+                </TableCell>
                 <TableCell />
               </TableRow>
             ))}

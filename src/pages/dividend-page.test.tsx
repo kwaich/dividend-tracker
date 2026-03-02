@@ -18,8 +18,19 @@ function makeCtx(): AddonContext {
         saveMany: vi.fn().mockResolvedValue({ created: [], errors: [] }),
       },
       assets: { getProfile: vi.fn().mockResolvedValue({}) },
-      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), trace: vi.fn() },
-      toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+      logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        trace: vi.fn(),
+      },
+      toast: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+      },
       query: {
         getClient: vi.fn().mockReturnValue(new QueryClient()),
         invalidateQueries: vi.fn(),
@@ -36,7 +47,9 @@ function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
 }
 
 describe("DividendPage", () => {
@@ -47,7 +60,9 @@ describe("DividendPage", () => {
 
   it("shows Suggestions and History tabs", () => {
     renderWithQuery(<DividendPage ctx={makeCtx()} />);
-    expect(screen.getByRole("tab", { name: "Suggestions" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "Suggestions" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "History" })).toBeInTheDocument();
   });
 
