@@ -136,7 +136,7 @@ export default function SuggestionsTab({ ctx, onSaved }: SuggestionsTabProps) {
             activityType: "DIVIDEND",
             activityDate: s.payDate ?? s.date,
             assetId: s.assetId,
-            symbol: { id: s.assetId, symbol: s.symbol },
+            symbol: { id: s.assetId },
             amount: s.amount,
             currency: s.currency,
             isDraft: false,
