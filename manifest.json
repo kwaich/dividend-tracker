@@ -9,6 +9,11 @@
   "enabled": true,
   "permissions": [
     {
+      "category": "accounts",
+      "functions": ["getAll"],
+      "purpose": "List accounts to group holdings by account"
+    },
+    {
       "category": "portfolio",
       "functions": ["getHoldings"],
       "purpose": "Get current holdings to check for missing dividends"
@@ -17,6 +22,16 @@
       "category": "activities",
       "functions": ["search", "saveMany"],
       "purpose": "Check existing dividends and create new ones"
+    },
+    {
+      "category": "market-data",
+      "functions": ["fetchDividends"],
+      "purpose": "Fetch historical dividend data from Yahoo Finance"
+    },
+    {
+      "category": "assets",
+      "functions": ["getProfile"],
+      "purpose": "Get asset profiles to resolve Yahoo Finance symbols"
     },
     {
       "category": "settings",
