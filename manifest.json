@@ -1,11 +1,11 @@
 {
   "id": "dividend-tracker-addon",
   "name": "Dividend Tracker",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Find and add missing dividend activities by fetching historical data from Yahoo Finance",
   "author": "kwaich",
   "main": "dist/addon.js",
-  "sdkVersion": "3.0.0",
+  "sdkVersion": "3.0.3",
   "enabled": true,
   "permissions": [
     {
