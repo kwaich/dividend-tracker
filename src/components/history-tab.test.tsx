@@ -1,22 +1,26 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import type { ActivityDetails, AddonContext } from "@wealthfolio/addon-sdk";
+import * as wealthfolioUI from "@wealthfolio/ui";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HistoryTab from "./history-tab";
 
-vi.mock("@wealthfolio/ui", async () => {
-  const actual =
-    await vi.importActual<typeof import("@wealthfolio/ui")>("@wealthfolio/ui");
-  return {
-    ...actual,
-    useBalancePrivacy: () => ({ isBalanceHidden: false }),
-    formatAmount: (amount: number | string | null, currency: string) =>
-      amount == null ? "-" : `${currency}:${Number(amount).toFixed(2)}`,
-  } as typeof actual;
-});
+vi.mock(
+  "@wealthfolio/ui",
+  async () => import("../test-utils/mock-wealthfolio-ui"),
+);
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function makeCtx(
   searchResult: {
@@ -128,9 +132,11 @@ describe("HistoryTab", () => {
     expect(await screen.findByText("AAPL")).toBeInTheDocument();
     expect(screen.getByText("RY")).toBeInTheDocument();
 
-    // Check accounts
-    expect(screen.getByText("Main Brokerage")).toBeInTheDocument();
-    expect(screen.getByText("TFSA")).toBeInTheDocument();
+    // Check accounts (also appear in filter select options)
+    expect(screen.getAllByText("Main Brokerage").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getAllByText("TFSA").length).toBeGreaterThanOrEqual(1);
 
     // Check amounts (formatted via mocked formatAmount: "CURRENCY:amount")
     // Each amount appears twice: once in the data row and once in the per-currency total row
@@ -367,5 +373,154 @@ describe("HistoryTab", () => {
 
     // Radix Select renders a button with role="combobox"
     expect(screen.getByRole("combobox")).toBeInTheDocument();
+  });
+
+  it("sorts by symbol column using localeCompare", async () => {
+    const activities: ActivityDetails[] = [
+      {
+        id: "div-1",
+        activityType: "DIVIDEND",
+        date: new Date("2025-06-15"),
+        quantity: null,
+        unitPrice: null,
+        amount: "10.00",
+        fee: null,
+        currency: "USD",
+        needsReview: false,
+        createdAt: new Date("2025-06-15"),
+        updatedAt: new Date("2025-06-15"),
+        accountId: "acct1",
+        accountName: "Alpha",
+        accountCurrency: "USD",
+        assetId: "msft-id",
+        assetSymbol: "MSFT",
+        subtype: null,
+      } as ActivityDetails,
+      {
+        id: "div-2",
+        activityType: "DIVIDEND",
+        date: new Date("2025-03-10"),
+        quantity: null,
+        unitPrice: null,
+        amount: "5.00",
+        fee: null,
+        currency: "USD",
+        needsReview: false,
+        createdAt: new Date("2025-03-10"),
+        updatedAt: new Date("2025-03-10"),
+        accountId: "acct1",
+        accountName: "Alpha",
+        accountCurrency: "USD",
+        assetId: "aapl-id",
+        assetSymbol: "AAPL",
+        subtype: null,
+      } as ActivityDetails,
+    ];
+
+    const ctx = makeCtx({ data: activities });
+    renderWithQuery(<HistoryTab ctx={ctx} />);
+    await screen.findByText("AAPL");
+
+    const symbolBtn = screen.getByRole("button", { name: /Symbol/ });
+
+    // First click: sort asc → AAPL before MSFT
+    fireEvent.click(symbolBtn);
+    let rows = screen.getAllByRole("row");
+    expect(rows[1].textContent).toContain("AAPL");
+    expect(rows[2].textContent).toContain("MSFT");
+
+    // Second click: sort desc → MSFT before AAPL
+    fireEvent.click(symbolBtn);
+    rows = screen.getAllByRole("row");
+    expect(rows[1].textContent).toContain("MSFT");
+    expect(rows[2].textContent).toContain("AAPL");
+  });
+
+  it("shows empty state when account filter matches no activities", async () => {
+    const origSelect = wealthfolioUI.Select;
+    let capturedOnValueChange: ((v: string) => void) | undefined;
+    vi.spyOn(wealthfolioUI, "Select").mockImplementation((({
+      children,
+      value,
+      onValueChange,
+    }: any) => {
+      capturedOnValueChange = onValueChange;
+      return origSelect({ children, value, onValueChange });
+    }) as any);
+
+    const activities: ActivityDetails[] = [
+      {
+        id: "div-1",
+        activityType: "DIVIDEND",
+        date: new Date("2025-06-15"),
+        quantity: null,
+        unitPrice: null,
+        amount: "10.00",
+        fee: null,
+        currency: "USD",
+        needsReview: false,
+        createdAt: new Date("2025-06-15"),
+        updatedAt: new Date("2025-06-15"),
+        accountId: "acct1",
+        accountName: "Alpha",
+        accountCurrency: "USD",
+        assetId: "a-id",
+        assetSymbol: "AAPL",
+        subtype: null,
+      } as ActivityDetails,
+    ];
+
+    const ctx = makeCtx({ data: activities });
+    renderWithQuery(<HistoryTab ctx={ctx} />);
+    await screen.findByText("AAPL");
+
+    // Set filter to a non-existent account
+    act(() => {
+      capturedOnValueChange!("NonExistent");
+    });
+
+    expect(
+      screen.getByText("No dividends found for this account."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows masked amounts when balance privacy is enabled", async () => {
+    vi.spyOn(wealthfolioUI, "useBalancePrivacy").mockReturnValue({
+      isBalanceHidden: true,
+      toggleBalanceVisibility: () => {},
+    });
+
+    const activities: ActivityDetails[] = [
+      {
+        id: "div-1",
+        activityType: "DIVIDEND",
+        date: new Date("2025-06-15"),
+        quantity: null,
+        unitPrice: null,
+        amount: "12.50",
+        fee: null,
+        currency: "USD",
+        needsReview: false,
+        createdAt: new Date("2025-06-15"),
+        updatedAt: new Date("2025-06-15"),
+        accountId: "acct1",
+        accountName: "Alpha",
+        accountCurrency: "USD",
+        assetId: "a-id",
+        assetSymbol: "AAPL",
+        subtype: null,
+      } as ActivityDetails,
+    ];
+
+    const ctx = makeCtx({ data: activities });
+    renderWithQuery(<HistoryTab ctx={ctx} />);
+    await screen.findByText("AAPL");
+
+    // Both the data row and the total row should show masked amounts
+    const masked = screen.getAllByText("••••");
+    expect(masked.length).toBeGreaterThanOrEqual(2);
+
+    // Formatted amount should NOT appear
+    expect(screen.queryByText("USD:12.50")).not.toBeInTheDocument();
   });
 });

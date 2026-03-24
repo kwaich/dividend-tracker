@@ -6,6 +6,17 @@ import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DividendPage from "./dividend-page";
 
+vi.mock(
+  "@wealthfolio/ui",
+  async () => import("../test-utils/mock-wealthfolio-ui"),
+);
+vi.mock("../components/suggestions-tab", () => ({
+  default: () => <div>SuggestionsTab</div>,
+}));
+vi.mock("../components/history-tab", () => ({
+  default: () => <div>HistoryTab</div>,
+}));
+
 afterEach(() => cleanup());
 
 function makeCtx(): AddonContext {
