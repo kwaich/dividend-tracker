@@ -70,6 +70,24 @@ The zip is written to `dist/`.
 pnpm test
 ```
 
+The automated test suite covers:
+
+- addon registration and disable cleanup
+- page-level tab rendering
+- suggestions and history tab states and interactions
+- data hooks for accounts, holdings, asset profiles, Yahoo dividends, existing dividends, and position activities
+- core utilities in `src/lib`
+
+For local iteration:
+
+```bash
+# Watch mode
+pnpm test:watch
+
+# Coverage report
+pnpm test -- --coverage
+```
+
 ## Development
 
 ```bash
