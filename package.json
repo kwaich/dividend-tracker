@@ -65,5 +65,8 @@
   "files": [
     "dist/",
     "manifest.json"
-  ]
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "msw"]
+  }
 }
