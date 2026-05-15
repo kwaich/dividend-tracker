@@ -52,7 +52,10 @@ export function useYahooDividends(
   }, [allLoaded, symbols]);
 
   const errors: YahooDividendError[] = queries
-    .map((q, i) => ({ symbol: symbols[i], error: q.error! }))
+    .map((q, i) => ({
+      symbol: yahooSymbolMap.get(symbols[i]) ?? symbols[i],
+      error: q.error!,
+    }))
     .filter((e) => e.error != null);
 
   return { data, allLoaded, errors };

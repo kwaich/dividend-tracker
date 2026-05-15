@@ -25,8 +25,9 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.20",
-    "@wealthfolio/addon-sdk": "*",
-    "@wealthfolio/ui": "*",
+    "@tanstack/react-table": "^8.21.3",
+    "@wealthfolio/addon-sdk": "^3.3.0",
+    "@wealthfolio/ui": "^3.3.0",
     "date-fns": "^4.1.0"
   },
   "devDependencies": {
@@ -42,7 +43,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^3.2.4",
-    "@wealthfolio/addon-dev-tools": "*",
+    "@wealthfolio/addon-dev-tools": "^3.3.0",
     "eslint": "^9.30.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.5",

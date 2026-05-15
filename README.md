@@ -1,4 +1,4 @@
-# Dividend Tracker
+# Dividends Importer
 
 A [Wealthfolio](https://wealthfolio.app) addon that finds missing dividend
 activities in your portfolio by fetching historical dividend data from Yahoo

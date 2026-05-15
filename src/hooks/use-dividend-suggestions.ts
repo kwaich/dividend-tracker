@@ -29,9 +29,13 @@ export function useDividendSuggestions(ctx: AddonContext): {
     useExistingDividends(ctx);
 
   // Build assetId-keyed entries to avoid same ticker collisions across exchanges
+  // Exclude manual-quote holdings early (crypto, manual assets)
   const { symbolMap, symbols, instrumentIds } = useMemo(() => {
     const securityHoldings = holdings.filter(
-      (h) => h.holdingType === "security" && h.instrument?.symbol,
+      (h) =>
+        h.holdingType === "security" &&
+        h.instrument?.symbol &&
+        h.instrument.quoteMode !== "MANUAL",
     );
 
     const map = new Map<
@@ -74,11 +78,18 @@ export function useDividendSuggestions(ctx: AddonContext): {
   );
 
   // Map assetId key → Yahoo symbol (adjusted for exchange suffix)
+  // Skip crypto and manual-quote assets — they have no Yahoo dividend data
   const yahooSymbolMap = useMemo(() => {
     const map = new Map<string, string>();
     instrumentIds.forEach((instrumentId, i) => {
       const asset = profiles[i];
       if (!asset?.instrumentSymbol) return;
+      if (asset.quoteMode === "MANUAL") return;
+      const iType = asset.instrumentType?.toUpperCase();
+      if (iType === "CRYPTOCURRENCY" || iType === "CRYPTO") return;
+      ctx.api.logger.debug(
+        `Eligible: ${asset.instrumentSymbol} (type=${asset.instrumentType}, quoteMode=${asset.quoteMode})`,
+      );
       const yahooSymbol = toYahooSymbol(
         asset.instrumentSymbol,
         asset.instrumentExchangeMic,
@@ -93,11 +104,22 @@ export function useDividendSuggestions(ctx: AddonContext): {
     return map;
   }, [instrumentIds, profiles, ctx.api.logger]);
 
+  // Only fetch dividends for symbols that have a Yahoo mapping
+  const yahooEligibleSymbols = useMemo(
+    () => symbols.filter((s) => yahooSymbolMap.has(s)),
+    [symbols, yahooSymbolMap],
+  );
+
   const {
     data: yahooData,
     allLoaded: allYahooLoaded,
     errors,
-  } = useYahooDividends(ctx, symbols, yahooSymbolMap, allProfilesLoaded);
+  } = useYahooDividends(
+    ctx,
+    yahooEligibleSymbols,
+    yahooSymbolMap,
+    allProfilesLoaded,
+  );
 
   const { data: positionData, allLoaded: allPositionLoaded } =
     usePositionActivities(ctx, symbols, symbolMap);
