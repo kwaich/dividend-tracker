@@ -18,9 +18,23 @@ Key directories:
 - Dev (watch build): `pnpm dev`
 - Dev server: `pnpm dev:server`
 - Tests: `pnpm test`
+- Tests (watch): `pnpm test:watch`
 - Type check: `pnpm type-check`
 - Lint: `pnpm lint`
+- Format: `pnpm format`
 - Bundle for distribution: `pnpm bundle`
+
+## Gotchas
+
+- **Workspace deps**: `@wealthfolio/addon-sdk` and `@wealthfolio/ui` are
+  `workspace:*` — must build from parent pnpm monorepo, not standalone.
+- **React externalized**: React and react-dom are provided as globals by the
+  Wealthfolio host (`rollup-plugin-external-globals`). Don't import them from
+  npm in runtime code.
+- **Addon lifecycle**: `addon.tsx` must export `enable(sdk)` and `disable()`
+  — Wealthfolio calls these on install/uninstall.
+- **Test mocks**: `src/test-utils/mock-wealthfolio-ui.tsx` mocks `@wealthfolio/ui`
+  for tests. Use it when testing components that consume Wealthfolio UI primitives.
 
 ## Plan Mode
 
