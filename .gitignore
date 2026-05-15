@@ -36,3 +36,6 @@ Thumbs.db
 
 # Addon Instructions
 .github/instructions
+
+# CocoIndex
+.cocoindex_code/
