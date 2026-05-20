@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DividendPage from "./dividend-page";
@@ -10,11 +9,8 @@ vi.mock(
   "@wealthfolio/ui",
   async () => import("../test-utils/mock-wealthfolio-ui"),
 );
-vi.mock("../components/suggestions-tab", () => ({
-  default: () => <div>SuggestionsTab</div>,
-}));
-vi.mock("../components/history-tab", () => ({
-  default: () => <div>HistoryTab</div>,
+vi.mock("../components/suggestions", () => ({
+  default: () => <div>DividendSuggestions</div>,
 }));
 
 afterEach(() => cleanup());
@@ -25,7 +21,9 @@ function makeCtx(): AddonContext {
       accounts: { getAll: vi.fn().mockResolvedValue([]) },
       portfolio: { getHoldings: vi.fn().mockResolvedValue([]) },
       activities: {
-        search: vi.fn().mockResolvedValue({ data: [], totalCount: 0 }),
+        search: vi
+          .fn()
+          .mockResolvedValue({ data: [], meta: { totalRowCount: 0 } }),
         saveMany: vi.fn().mockResolvedValue({ created: [], errors: [] }),
       },
       assets: { getProfile: vi.fn().mockResolvedValue({}) },
@@ -66,34 +64,11 @@ function renderWithQuery(ui: React.ReactElement) {
 describe("DividendPage", () => {
   it("renders page header", () => {
     renderWithQuery(<DividendPage ctx={makeCtx()} />);
-    expect(screen.getByText("Dividend Tracker")).toBeInTheDocument();
+    expect(screen.getByText("Dividends Importer")).toBeInTheDocument();
   });
 
-  it("shows Suggestions and History tabs", () => {
+  it("renders the suggestions component", () => {
     renderWithQuery(<DividendPage ctx={makeCtx()} />);
-    expect(
-      screen.getByRole("tab", { name: "Suggestions" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "History" })).toBeInTheDocument();
-  });
-
-  it("defaults to Suggestions tab", () => {
-    renderWithQuery(<DividendPage ctx={makeCtx()} />);
-    const suggestionsTab = screen.getByRole("tab", { name: "Suggestions" });
-    expect(suggestionsTab).toHaveAttribute("data-state", "active");
-  });
-
-  it("switches to History tab on click", async () => {
-    const user = userEvent.setup();
-    renderWithQuery(<DividendPage ctx={makeCtx()} />);
-
-    const historyTab = screen.getByRole("tab", { name: "History" });
-    await user.click(historyTab);
-
-    expect(historyTab).toHaveAttribute("data-state", "active");
-    expect(screen.getByRole("tab", { name: "Suggestions" })).toHaveAttribute(
-      "data-state",
-      "inactive",
-    );
+    expect(screen.getByText("DividendSuggestions")).toBeInTheDocument();
   });
 });

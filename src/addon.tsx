@@ -5,14 +5,14 @@ import React from "react";
 import DividendPage from "./pages/dividend-page";
 
 const enable: AddonEnableFunction = (context) => {
-  context.api.logger.info("Dividend Tracker addon is being enabled!");
+  context.api.logger.info("Dividends Importer addon is being enabled!");
 
   const addedItems: { remove: () => void }[] = [];
 
   try {
     const sidebarItem = context.sidebar.addItem({
       id: "dividend-tracker",
-      label: "Dividends",
+      label: "Dividends Importer",
       icon: <Icons.DollarSign className="h-4 w-4" />,
       route: "/addons/dividend-tracker",
       order: 160,
@@ -35,7 +35,7 @@ const enable: AddonEnableFunction = (context) => {
       ),
     });
 
-    context.api.logger.info("Dividend Tracker addon enabled successfully");
+    context.api.logger.info("Dividends Importer addon enabled successfully");
   } catch (error) {
     context.api.logger.error(
       "Failed to initialize addon: " + (error as Error).message,
@@ -44,7 +44,7 @@ const enable: AddonEnableFunction = (context) => {
   }
 
   context.onDisable(() => {
-    context.api.logger.info("Dividend Tracker addon is being disabled");
+    context.api.logger.info("Dividends Importer addon is being disabled");
     addedItems.forEach((item) => {
       try {
         item.remove();

@@ -1,11 +1,11 @@
 {
   "id": "dividend-tracker-addon",
-  "name": "Dividend Tracker",
-  "version": "1.0.2",
+  "name": "Dividends Importer",
+  "version": "1.0.4",
   "description": "Find and add missing dividend activities by fetching historical data from Yahoo Finance",
   "author": "kwaich",
   "main": "dist/addon.js",
-  "sdkVersion": "3.0.3",
+  "sdkVersion": "3.3.0",
   "enabled": true,
   "permissions": [
     {
@@ -25,13 +25,8 @@
     },
     {
       "category": "market-data",
-      "functions": ["fetchDividends"],
-      "purpose": "Fetch historical dividend data from Yahoo Finance"
-    },
-    {
-      "category": "assets",
-      "functions": ["getProfile"],
-      "purpose": "Get asset profiles to resolve Yahoo Finance symbols"
+      "functions": ["fetchDividends", "getProfile"],
+      "purpose": "Fetch historical dividend data and asset profiles to resolve Yahoo Finance symbols"
     },
     {
       "category": "settings",
