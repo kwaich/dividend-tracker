@@ -41,7 +41,7 @@ describe("addon enable", () => {
     expect(ctx.sidebar.addItem).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "dividend-tracker",
-        label: "Dividends",
+        label: "Dividends Importer",
         route: "/addons/dividend-tracker",
         order: 160,
       }),

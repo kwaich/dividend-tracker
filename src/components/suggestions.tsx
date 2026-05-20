@@ -499,8 +499,10 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     null!,
   );
 
-  const getCellState = useCallback((_rowIndex: number, _columnId: string) => {
-    const row = tableRef.current?.getRowModel().rows[_rowIndex]?.original;
+  const getCellState = useCallback((rowIndex: number, _columnId: string) => {
+    // DataGrid calls this with the virtualizer's index, which matches the
+    // position in `table.getRowModel().rows` — the post-filter/sort model.
+    const row = tableRef.current?.getRowModel().rows[rowIndex]?.original;
     if (!row || row.status !== "existing") return null;
     return { type: "success" as const, messages: [] };
   }, []);
@@ -572,7 +574,10 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       );
   }, [dateRange, table]);
 
-  // Auto-select all new rows when data first loads or changes
+  // Auto-select all new rows when the underlying data set changes.
+  // `dataKey` is a string hash of all row ids — it changes only when rows are
+  // added/removed (not when the user edits a row), so per-row edits don't
+  // reset the selection. Including `localData` would re-run on every edit.
   useEffect(() => {
     if (localData.length > 0) {
       const selection: Record<string, boolean> = {};
@@ -593,7 +598,9 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     });
   }, [isMobile, table]);
 
-  // Sync local filter state when the sheet opens
+  // Seed the staged (draft) filters from the committed filters only when the
+  // sheet opens — we deliberately don't re-sync on every committed-filter
+  // change, otherwise the user's in-progress edits would be clobbered.
   useEffect(() => {
     if (filterSheetOpen) {
       setLocalStatusFilter(new Set(statusFilter));
@@ -1098,7 +1105,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           </Sheet>
 
           {/* Mobile list */}
-          <div style={{ height: "calc(100vh - 220px)", overflowY: "auto" }}>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {table.getFilteredRowModel().rows.map((row) => (
               <MobileRow
                 key={row.id}

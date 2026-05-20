@@ -6,8 +6,8 @@ export function useSaveDividends(ctx: AddonContext) {
   const [saving, setSaving] = useState(false);
 
   const save = async (rows: DividendRow[]) => {
-    const valid = rows.filter((r) => r.accountId !== "TOTAL");
-    const skipped = rows.length - valid.length;
+    const valid = rows.filter((r) => r.status === "new");
+    if (valid.length === 0) return;
 
     const byAccount = new Map<string, DividendRow[]>();
     for (const s of valid) {
@@ -17,29 +17,42 @@ export function useSaveDividends(ctx: AddonContext) {
 
     setSaving(true);
     let totalCreated = 0;
-    let totalErrors = skipped;
+    let totalErrors = 0;
     const errorMessages: string[] = [];
 
     try {
-      for (const [, group] of byAccount) {
-        const result = await ctx.api.activities.saveMany({
-          creates: group.map((s) => ({
-            accountId: s.accountId,
-            activityType: "DIVIDEND",
-            activityDate: s.payDate ?? s.date,
-            assetId: s.assetId,
-            asset: { id: s.assetId },
-            amount: s.amount,
-            currency: s.currency,
-            isDraft: false,
-            comment: s.payDate ? `ex-date:${s.date}` : null,
-          })),
-        });
-        totalCreated += result.created.length;
-        totalErrors += result.errors.length;
-        for (const err of result.errors) {
-          ctx.api.logger.error(`Failed to create dividend: ${err.message}`);
-          errorMessages.push(err.message);
+      const results = await Promise.allSettled(
+        Array.from(byAccount.values()).map((group) =>
+          ctx.api.activities.saveMany({
+            creates: group.map((s) => ({
+              accountId: s.accountId,
+              activityType: "DIVIDEND",
+              activityDate: s.payDate ?? s.date,
+              assetId: s.assetId,
+              asset: { id: s.assetId },
+              amount: s.amount,
+              currency: s.currency,
+              isDraft: false,
+              comment: s.payDate ? `ex-date:${s.date}` : null,
+            })),
+          }),
+        ),
+      );
+
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          totalCreated += r.value.created.length;
+          totalErrors += r.value.errors.length;
+          for (const err of r.value.errors) {
+            ctx.api.logger.error(`Failed to create dividend: ${err.message}`);
+            errorMessages.push(err.message);
+          }
+        } else {
+          totalErrors += 1;
+          const msg =
+            r.reason instanceof Error ? r.reason.message : String(r.reason);
+          ctx.api.logger.error(`Failed to save dividend group: ${msg}`);
+          errorMessages.push(msg);
         }
       }
 
@@ -59,8 +72,6 @@ export function useSaveDividends(ctx: AddonContext) {
 
       ctx.api.query.invalidateQueries(["activities"]);
       ctx.api.query.invalidateQueries(["yahoo-dividends"]);
-    } catch (err) {
-      ctx.api.toast.error("Failed to save: " + (err as Error).message);
     } finally {
       setSaving(false);
     }
