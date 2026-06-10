@@ -71,7 +71,7 @@ export function useSaveDividends(ctx: AddonContext) {
       }
 
       ctx.api.query.invalidateQueries(["activities"]);
-      ctx.api.query.invalidateQueries(["yahoo-dividends"]);
+      ctx.api.query.invalidateQueries(["market-dividends"]);
     } finally {
       setSaving(false);
     }

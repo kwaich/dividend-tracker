@@ -90,7 +90,7 @@ describe("useSaveDividends", () => {
     expect(toast.success).toHaveBeenCalledWith("3 dividends added");
     expect(toast.warning).not.toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledWith(["activities"]);
-    expect(invalidateQueries).toHaveBeenCalledWith(["yahoo-dividends"]);
+    expect(invalidateQueries).toHaveBeenCalledWith(["market-dividends"]);
   });
 
   it("skips non-new rows without counting them as failures", async () => {

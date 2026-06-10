@@ -8,7 +8,7 @@ common task playbooks.
 ## Overview
 
 Wealthfolio addon plugin. React + Vite + TanStack Query + Tailwind v4. Fetches
-Yahoo Finance dividend history, compares against existing activities, suggests
+market-provider dividend history, compares against existing activities, suggests
 missing ones.
 
 ## Code Layout
@@ -46,13 +46,13 @@ addon.tsx → DividendPage → SuggestionsTab / HistoryTab
                     ├── useAccounts
                     ├── useHoldingsByAccount
                     ├── useAssetProfiles
-                    ├── useYahooDividends
+                    ├── useMarketDividends
                     ├── usePositionActivities
                     └── useExistingDividends
                               ↓
                     lib/quantity-timeline.ts (shares at date)
                     lib/is-duplicate.ts (3-day dedup window)
-                    lib/yahoo-dividends.ts (MIC→Yahoo suffix)
+                    lib/market-dividends.ts (provider-neutral fetch request)
                               ↓
                     Host API via ctx.api.*
 ```

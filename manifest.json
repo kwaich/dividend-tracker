@@ -1,41 +1,61 @@
 {
   "id": "dividend-tracker-addon",
   "name": "Dividends Importer",
-  "version": "1.0.4",
-  "description": "Find and add missing dividend activities by fetching historical data from Yahoo Finance",
+  "version": "1.1.1",
+  "description": "Find and add missing dividend activities by fetching historical market data",
   "author": "kwaich",
   "main": "dist/addon.js",
-  "sdkVersion": "3.3.0",
+  "sdkVersion": "3.5.1",
+  "minWealthfolioVersion": "3.5.0",
   "enabled": true,
   "permissions": [
     {
       "category": "accounts",
-      "functions": ["getAll"],
+      "functions": [
+        { "name": "getAll", "isDeclared": true, "isDetected": false }
+      ],
       "purpose": "List accounts to group holdings by account"
     },
     {
       "category": "portfolio",
-      "functions": ["getHoldings"],
+      "functions": [
+        { "name": "getHoldings", "isDeclared": true, "isDetected": false }
+      ],
       "purpose": "Get current holdings to check for missing dividends"
     },
     {
       "category": "activities",
-      "functions": ["search", "saveMany"],
+      "functions": [
+        { "name": "search", "isDeclared": true, "isDetected": false },
+        { "name": "saveMany", "isDeclared": true, "isDetected": false }
+      ],
       "purpose": "Check existing dividends and create new ones"
     },
     {
       "category": "market-data",
-      "functions": ["fetchDividends", "getProfile"],
-      "purpose": "Fetch historical dividend data and asset profiles to resolve Yahoo Finance symbols"
+      "functions": [
+        { "name": "fetchDividends", "isDeclared": true, "isDetected": false }
+      ],
+      "purpose": "Fetch historical dividend data from configured market data providers"
+    },
+    {
+      "category": "assets",
+      "functions": [
+        { "name": "getProfile", "isDeclared": true, "isDetected": false }
+      ],
+      "purpose": "Read asset profiles to pass symbol, exchange, and currency context to market data providers"
     },
     {
       "category": "settings",
-      "functions": ["get"],
+      "functions": [{ "name": "get", "isDeclared": true, "isDetected": false }],
       "purpose": "Get base currency"
     },
     {
       "category": "ui",
-      "functions": ["sidebar.addItem", "router.add"],
+      "functions": [
+        { "name": "sidebar.addItem", "isDeclared": true, "isDetected": false },
+        { "name": "router.add", "isDeclared": true, "isDetected": false }
+      ],
       "purpose": "Navigation"
     }
   ],

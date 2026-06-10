@@ -1,7 +1,7 @@
 {
   "name": "dividend-tracker",
-  "version": "1.0.4",
-  "description": "Find and add missing dividend activities by fetching historical data from Yahoo Finance",
+  "version": "1.1.1",
+  "description": "Find and add missing dividend activities by fetching historical market data",
   "type": "module",
   "main": "dist/addon.js",
   "author": "kwaich",
@@ -26,8 +26,8 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-table": "^8.21.3",
-    "@wealthfolio/addon-sdk": "^3.3.0",
-    "@wealthfolio/ui": "^3.3.0",
+    "@wealthfolio/addon-sdk": "^3.5.1",
+    "@wealthfolio/ui": "^3.5.1",
     "date-fns": "^4.1.0"
   },
   "devDependencies": {
@@ -43,7 +43,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^3.2.4",
-    "@wealthfolio/addon-dev-tools": "^3.3.0",
+    "@wealthfolio/addon-dev-tools": "^3.5.1",
     "eslint": "^9.30.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.5",
@@ -68,6 +68,9 @@
     "manifest.json"
   ],
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "msw"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "msw"
+    ]
   }
 }
