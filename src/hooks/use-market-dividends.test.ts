@@ -4,15 +4,15 @@ import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { YahooDividend } from "../lib/yahoo-dividends";
-import { useYahooDividends } from "./use-yahoo-dividends";
+import type { DividendEvent } from "../lib/market-dividends";
+import { useMarketDividends } from "./use-market-dividends";
 
-vi.mock("../lib/yahoo-dividends", () => ({
-  fetchYahooDividends: vi.fn(),
+vi.mock("../lib/market-dividends", () => ({
+  fetchMarketDividends: vi.fn(),
 }));
 
-import { fetchYahooDividends } from "../lib/yahoo-dividends";
-const mockFetch = vi.mocked(fetchYahooDividends);
+import { fetchMarketDividends } from "../lib/market-dividends";
+const mockFetch = vi.mocked(fetchMarketDividends);
 
 function makeCtx(): AddonContext {
   return {
@@ -34,11 +34,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("useYahooDividends", () => {
+describe("useMarketDividends", () => {
   it("returns empty data Map and allLoaded:true when symbols is empty", () => {
     const ctx = makeCtx();
     const { result } = renderHook(
-      () => useYahooDividends(ctx, [], new Map(), true),
+      () => useMarketDividends(ctx, [], new Map(), true),
       { wrapper },
     );
 
@@ -48,13 +48,13 @@ describe("useYahooDividends", () => {
   });
 
   it("fetches dividends for each symbol and populates data Map keyed by original symbol", async () => {
-    const divs: YahooDividend[] = [{ amount: 1.5, date: 1700000000 }];
+    const divs: DividendEvent[] = [{ amount: 1.5, date: 1700000000 }];
     mockFetch.mockResolvedValue(divs);
 
     const ctx = makeCtx();
     const symbols = ["AAPL", "MSFT"];
     const { result } = renderHook(
-      () => useYahooDividends(ctx, symbols, new Map(), true),
+      () => useMarketDividends(ctx, symbols, new Map(), true),
       { wrapper },
     );
 
@@ -65,24 +65,44 @@ describe("useYahooDividends", () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("uses yahooSymbolMap for symbol translation", async () => {
+  it("uses dividendRequestMap for provider-neutral options", async () => {
     mockFetch.mockResolvedValue([]);
 
     const ctx = makeCtx();
     const symbols = ["RY", "AAPL"];
-    const yahooMap = new Map([["RY", "RY.TO"]]);
+    const requestMap = new Map([
+      [
+        "RY",
+        {
+          symbol: "RY",
+          options: {
+            exchangeMic: "XTSE",
+            instrumentType: "EQUITY",
+            quoteCcy: "CAD",
+          },
+        },
+      ],
+    ]);
 
     const { result } = renderHook(
-      () => useYahooDividends(ctx, symbols, yahooMap, true),
+      () => useMarketDividends(ctx, symbols, requestMap, true),
       { wrapper },
     );
 
     await waitFor(() => expect(result.current.allLoaded).toBe(true));
 
-    // RY should be translated to RY.TO via the map
-    expect(mockFetch).toHaveBeenCalledWith("RY.TO", ctx.api.market);
-    // AAPL not in map, should use raw symbol
-    expect(mockFetch).toHaveBeenCalledWith("AAPL", ctx.api.market);
+    expect(mockFetch).toHaveBeenCalledWith(
+      {
+        symbol: "RY",
+        options: {
+          exchangeMic: "XTSE",
+          instrumentType: "EQUITY",
+          quoteCcy: "CAD",
+        },
+      },
+      ctx.api.market,
+    );
+    expect(mockFetch).toHaveBeenCalledWith({ symbol: "AAPL" }, ctx.api.market);
   });
 
   it("collects errors for failed queries into errors array", async () => {
@@ -92,7 +112,7 @@ describe("useYahooDividends", () => {
     const ctx = makeCtx();
     const symbols = ["FAIL"];
     const { result } = renderHook(
-      () => useYahooDividends(ctx, symbols, new Map(), true),
+      () => useMarketDividends(ctx, symbols, new Map(), true),
       { wrapper },
     );
 
@@ -110,7 +130,7 @@ describe("useYahooDividends", () => {
     const ctx = makeCtx();
     const symbols = ["AAPL"];
     const { result } = renderHook(
-      () => useYahooDividends(ctx, symbols, new Map(), false),
+      () => useMarketDividends(ctx, symbols, new Map(), false),
       { wrapper },
     );
 

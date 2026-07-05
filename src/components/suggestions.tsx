@@ -666,7 +666,9 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
             variant="link"
             size="sm"
             className="ml-2 h-auto p-0 text-inherit underline"
-            onClick={() => ctx.api.query.invalidateQueries(["yahoo-dividends"])}
+            onClick={() =>
+              ctx.api.query.invalidateQueries(["market-dividends"])
+            }
           >
             Retry
           </Button>
@@ -771,7 +773,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               size="icon"
               className="size-9 shrink-0"
               onClick={() =>
-                ctx.api.query.invalidateQueries(["yahoo-dividends"])
+                ctx.api.query.invalidateQueries(["market-dividends"])
               }
               disabled={isLoading}
             >
@@ -1139,7 +1141,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                 size="sm"
                 className="h-8 w-8 p-0"
                 onClick={() =>
-                  ctx.api.query.invalidateQueries(["yahoo-dividends"])
+                  ctx.api.query.invalidateQueries(["market-dividends"])
                 }
                 disabled={isLoading}
               >

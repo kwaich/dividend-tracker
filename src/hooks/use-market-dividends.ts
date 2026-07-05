@@ -1,48 +1,51 @@
 import { useQueries } from "@tanstack/react-query";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { useMemo } from "react";
-import type { YahooDividend } from "../lib/yahoo-dividends";
-import { fetchYahooDividends } from "../lib/yahoo-dividends";
+import {
+  fetchMarketDividends,
+  type DividendEvent,
+  type DividendRequest,
+} from "../lib/market-dividends";
 
-interface YahooDividendError {
+interface MarketDividendError {
   symbol: string;
   error: Error;
 }
 
-export function useYahooDividends(
+export function useMarketDividends(
   ctx: AddonContext,
   symbols: string[],
-  yahooSymbolMap: Map<string, string>,
+  dividendRequestMap: Map<string, DividendRequest>,
   enabled: boolean,
 ): {
-  data: Map<string, YahooDividend[]>;
+  data: Map<string, DividendEvent[]>;
   allLoaded: boolean;
-  errors: YahooDividendError[];
+  errors: MarketDividendError[];
 } {
   const queries = useQueries({
     queries: useMemo(
       () =>
         symbols.map((symbol) => ({
           // eslint-disable-next-line @tanstack/query/exhaustive-deps
-          queryKey: ["yahoo-dividends", symbol],
+          queryKey: ["market-dividends", symbol],
           queryFn: () =>
-            fetchYahooDividends(
-              yahooSymbolMap.get(symbol) ?? symbol,
+            fetchMarketDividends(
+              dividendRequestMap.get(symbol) ?? { symbol },
               ctx.api.market,
             ),
           enabled,
           staleTime: 30 * 60 * 1000,
           retry: 1,
         })),
-      // yahooSymbolMap is rebuilt when profiles load; symbols drives query count
-      [symbols, yahooSymbolMap, ctx.api.market, enabled],
+      // dividendRequestMap is rebuilt when profiles load; symbols drives query count
+      [symbols, dividendRequestMap, ctx.api.market, enabled],
     ),
   });
 
   const allLoaded = queries.length === 0 || queries.every((q) => !q.isLoading);
 
   const data = useMemo(() => {
-    const map = new Map<string, YahooDividend[]>();
+    const map = new Map<string, DividendEvent[]>();
     symbols.forEach((symbol, i) => {
       map.set(symbol, queries[i]?.data ?? []);
     });
@@ -51,9 +54,9 @@ export function useYahooDividends(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allLoaded, symbols]);
 
-  const errors: YahooDividendError[] = queries
+  const errors: MarketDividendError[] = queries
     .map((q, i) => ({
-      symbol: yahooSymbolMap.get(symbols[i]) ?? symbols[i],
+      symbol: dividendRequestMap.get(symbols[i])?.symbol ?? symbols[i],
       error: q.error!,
     }))
     .filter((e) => e.error != null);

@@ -5,14 +5,14 @@ import {
   buildQuantityTimeline,
   getQuantityAtDate,
 } from "../lib/quantity-timeline";
-import { toYahooSymbol } from "../lib/yahoo-dividends";
+import type { DividendRequest } from "../lib/market-dividends";
 import type { DividendSuggestion } from "../types";
 import { useAccounts } from "./use-accounts";
 import { useAssetProfiles } from "./use-asset-profiles";
 import { useExistingDividends } from "./use-existing-dividends";
 import { useHoldingsByAccount } from "./use-holdings-by-account";
+import { useMarketDividends } from "./use-market-dividends";
 import { usePositionActivities } from "./use-position-activities";
-import { useYahooDividends } from "./use-yahoo-dividends";
 
 export function useDividendSuggestions(ctx: AddonContext): {
   suggestions: DividendSuggestion[];
@@ -77,10 +77,9 @@ export function useDividendSuggestions(ctx: AddonContext): {
     instrumentIds,
   );
 
-  // Map assetId key → Yahoo symbol (adjusted for exchange suffix)
-  // Skip crypto and manual-quote assets — they have no Yahoo dividend data
-  const yahooSymbolMap = useMemo(() => {
-    const map = new Map<string, string>();
+  // Map assetId key → provider-neutral dividend request.
+  const dividendRequestMap = useMemo(() => {
+    const map = new Map<string, DividendRequest>();
     instrumentIds.forEach((instrumentId, i) => {
       const asset = profiles[i];
       if (!asset?.instrumentSymbol) return;
@@ -90,34 +89,32 @@ export function useDividendSuggestions(ctx: AddonContext): {
       ctx.api.logger.debug(
         `Eligible: ${asset.instrumentSymbol} (type=${asset.instrumentType}, quoteMode=${asset.quoteMode})`,
       );
-      const yahooSymbol = toYahooSymbol(
-        asset.instrumentSymbol,
-        asset.instrumentExchangeMic,
-      );
-      if (yahooSymbol !== asset.instrumentSymbol) {
-        ctx.api.logger.debug(
-          `Mapped ${asset.instrumentSymbol} → ${yahooSymbol} (MIC: ${asset.instrumentExchangeMic})`,
-        );
-      }
-      map.set(instrumentId, yahooSymbol);
+      map.set(instrumentId, {
+        symbol: asset.instrumentSymbol,
+        options: {
+          exchangeMic: asset.instrumentExchangeMic ?? undefined,
+          instrumentType: asset.instrumentType ?? undefined,
+          quoteCcy: asset.quoteCcy || undefined,
+        },
+      });
     });
     return map;
   }, [instrumentIds, profiles, ctx.api.logger]);
 
-  // Only fetch dividends for symbols that have a Yahoo mapping
-  const yahooEligibleSymbols = useMemo(
-    () => symbols.filter((s) => yahooSymbolMap.has(s)),
-    [symbols, yahooSymbolMap],
+  // Only fetch dividends for symbols with enough provider-neutral metadata.
+  const dividendEligibleSymbols = useMemo(
+    () => symbols.filter((s) => dividendRequestMap.has(s)),
+    [symbols, dividendRequestMap],
   );
 
   const {
-    data: yahooData,
-    allLoaded: allYahooLoaded,
+    data: dividendData,
+    allLoaded: allDividendsLoaded,
     errors,
-  } = useYahooDividends(
+  } = useMarketDividends(
     ctx,
-    yahooEligibleSymbols,
-    yahooSymbolMap,
+    dividendEligibleSymbols,
+    dividendRequestMap,
     allProfilesLoaded,
   );
 
@@ -154,12 +151,12 @@ export function useDividendSuggestions(ctx: AddonContext): {
   }, [symbolMap]);
 
   const suggestions = useMemo(() => {
-    if (!allYahooLoaded || !existingDivs || !allPositionLoaded) return [];
+    if (!allDividendsLoaded || !existingDivs || !allPositionLoaded) return [];
 
     const result: DividendSuggestion[] = [];
 
     symbols.forEach((symbolKey) => {
-      const divs = yahooData.get(symbolKey);
+      const divs = dividendData.get(symbolKey);
       if (!divs) return;
 
       const entry = symbolMap.get(symbolKey);
@@ -211,13 +208,13 @@ export function useDividendSuggestions(ctx: AddonContext): {
     result.sort((a, b) => b.date.localeCompare(a.date));
     return result;
   }, [
-    allYahooLoaded,
+    allDividendsLoaded,
     allPositionLoaded,
     existingDivs,
     symbols,
     symbolMap,
     symbolAccountCounts,
-    yahooData,
+    dividendData,
     quantityTimelines,
   ]);
 
@@ -226,7 +223,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
     holdingsLoading ||
     existingDivsLoading ||
     !allProfilesLoaded ||
-    !allYahooLoaded ||
+    !allDividendsLoaded ||
     !allPositionLoaded;
 
   const accountNameMap = useMemo(

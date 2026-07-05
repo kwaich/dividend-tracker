@@ -42,6 +42,7 @@ describe("addon enable", () => {
       expect.objectContaining({
         id: "dividend-tracker",
         label: "Dividends Importer",
+        icon: "receipt",
         route: "/addons/dividend-tracker",
         order: 160,
       }),
