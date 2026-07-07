@@ -39,7 +39,10 @@ import {
 } from "@wealthfolio/ui";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { format } from "date-fns";
-type DateRange = { from: Date | undefined; to?: Date | undefined };
+interface DateRange {
+  from: Date | undefined;
+  to?: Date | undefined;
+}
 import React, {
   useCallback,
   useEffect,
@@ -503,7 +506,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     // DataGrid calls this with the virtualizer's index, which matches the
     // position in `table.getRowModel().rows` — the post-filter/sort model.
     const row = tableRef.current?.getRowModel().rows[rowIndex]?.original;
-    if (!row || row.status !== "existing") return null;
+    if (row?.status !== "existing") return null;
     return { type: "success" as const, messages: [] };
   }, []);
 

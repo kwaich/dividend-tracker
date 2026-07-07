@@ -32,7 +32,6 @@ export function useSaveDividends(ctx: AddonContext) {
               asset: { id: s.assetId },
               amount: s.amount,
               currency: s.currency,
-              isDraft: false,
               comment: s.payDate ? `ex-date:${s.date}` : null,
             })),
           }),
