@@ -5,8 +5,7 @@ import {
   buildQuantityTimeline,
   getQuantityAtDate,
 } from "../lib/quantity-timeline";
-import type { DividendRequest } from "../lib/market-dividends";
-import type { DividendSuggestion } from "../types";
+import type { DividendRequest, DividendSuggestion } from "../types";
 import { useAccounts } from "./use-accounts";
 import { useAssetProfiles } from "./use-asset-profiles";
 import { useExistingDividends } from "./use-existing-dividends";
@@ -101,22 +100,11 @@ export function useDividendSuggestions(ctx: AddonContext): {
     return map;
   }, [instrumentIds, profiles, ctx.api.logger]);
 
-  // Only fetch dividends for symbols with enough provider-neutral metadata.
-  const dividendEligibleSymbols = useMemo(
-    () => symbols.filter((s) => dividendRequestMap.has(s)),
-    [symbols, dividendRequestMap],
-  );
-
   const {
     data: dividendData,
     allLoaded: allDividendsLoaded,
     errors,
-  } = useMarketDividends(
-    ctx,
-    dividendEligibleSymbols,
-    dividendRequestMap,
-    allProfilesLoaded,
-  );
+  } = useMarketDividends(ctx, dividendRequestMap, allProfilesLoaded);
 
   const { data: positionData, allLoaded: allPositionLoaded } =
     usePositionActivities(ctx, symbols, symbolMap);
