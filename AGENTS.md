@@ -52,7 +52,7 @@ addon.tsx → DividendPage → SuggestionsTab / HistoryTab
                               ↓
                     lib/quantity-timeline.ts (shares at date)
                     lib/is-duplicate.ts (3-day dedup window)
-                    lib/market-dividends.ts (provider-neutral fetch request)
+                    types/index.ts (DividendRequest — provider-neutral fetch)
                               ↓
                     Host API via ctx.api.*
 ```
