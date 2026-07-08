@@ -1,19 +1,19 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { AddonEnableFunction } from "@wealthfolio/addon-sdk";
-import { Icons } from "@wealthfolio/ui";
-import React from "react";
+import { createRoot, type Root } from "react-dom/client";
 import DividendPage from "./pages/dividend-page";
 
 const enable: AddonEnableFunction = (context) => {
   context.api.logger.info("Dividends Importer addon is being enabled!");
 
   const addedItems: { remove: () => void }[] = [];
+  let root: Root | null = null;
 
   try {
     const sidebarItem = context.sidebar.addItem({
       id: "dividend-tracker",
       label: "Dividends Importer",
-      icon: <Icons.DollarSign className="h-4 w-4" />,
+      icon: "receipt",
       route: "/addons/dividend-tracker",
       order: 160,
     });
@@ -21,18 +21,16 @@ const enable: AddonEnableFunction = (context) => {
 
     context.router.add({
       path: "/addons/dividend-tracker",
-      component: React.lazy(() =>
-        Promise.resolve({
-          default: () => {
-            const queryClient = context.api.query.getClient() as QueryClient;
-            return (
-              <QueryClientProvider client={queryClient}>
-                <DividendPage ctx={context} />
-              </QueryClientProvider>
-            );
-          },
-        }),
-      ),
+      render: ({ root: routeRoot }) => {
+        root ??= createRoot(routeRoot);
+        const queryClient = context.api.query.getClient() as QueryClient;
+
+        root.render(
+          <QueryClientProvider client={queryClient}>
+            <DividendPage ctx={context} />
+          </QueryClientProvider>,
+        );
+      },
     });
 
     context.api.logger.info("Dividends Importer addon enabled successfully");
@@ -54,6 +52,8 @@ const enable: AddonEnableFunction = (context) => {
         );
       }
     });
+    root?.unmount();
+    root = null;
   });
 };
 

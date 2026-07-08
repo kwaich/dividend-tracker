@@ -1,8 +1,8 @@
 # Dividends Importer
 
 A [Wealthfolio](https://wealthfolio.app) addon that finds missing dividend
-activities in your portfolio by fetching historical dividend data from Yahoo
-Finance.
+activities in your portfolio by fetching historical dividend data from
+Wealthfolio market data providers.
 
 ## Prerequisite
 
@@ -13,8 +13,8 @@ should be run from a Wealthfolio workspace where those packages are available.
 ## What it does
 
 - Scans your current holdings for securities
-- Fetches the last 2 years of dividend history from Yahoo Finance (no API key
-  required)
+- Fetches the last 5 years of dividend history from Wealthfolio market data
+  providers
 - Compares against your existing DIVIDEND activities
 - **Only suggests dividends you were eligible for** — uses your
   BUY/SELL/SPLIT/TRANSFER history to compute the exact share count at each
@@ -28,13 +28,13 @@ should be run from a Wealthfolio workspace where those packages are available.
 
 ### Suggestions
 
-Shows dividends that appear in Yahoo Finance history but are absent from your
+Shows dividends that appear in market data history but are absent from your
 Wealthfolio activities (no matching entry within ±3 days for the same symbol and
 account).
 
 Each row is editable before saving:
 
-- **Amount** — inline editable in case Yahoo's figure differs from what you
+- **Amount** — inline editable in case the provider's figure differs from what you
   received
 - **Account** — dropdown if you hold the same symbol in multiple accounts
 
@@ -75,7 +75,7 @@ The automated test suite covers:
 - addon registration and disable cleanup
 - page-level tab rendering
 - suggestions and history tab states and interactions
-- data hooks for accounts, holdings, asset profiles, Yahoo dividends, existing dividends, and position activities
+- data hooks for accounts, holdings, asset profiles, market dividends, existing dividends, and position activities
 - core utilities in `src/lib`
 
 For local iteration:
@@ -100,14 +100,20 @@ pnpm dev:server
 
 ## Screenshots
 
-![image](https://github.com/user-attachments/assets/d4f9c62d-89df-4ada-bed0-46b3d13c62b8)
+### Light mode
+
+![Dividends Importer in light mode](screenshots/dividend-importer-light.png)
+
+### Dark mode
+
+![Dividends Importer in dark mode](screenshots/dividend-importer-dark.png)
 
 ## Notes
 
-- Yahoo Finance data is fetched directly from the Tauri webview, which has no
-  CORS restrictions. The feature will not work in a browser-based deployment.
+- Dividend data is fetched through Wealthfolio's configured market data
+  providers. This addon requires Wealthfolio 3.6.0 or newer.
 - Dividends are deduplicated with a ±3 day window to account for ex-date vs.
-  pay-date differences between brokers and Yahoo Finance.
+  pay-date differences between brokers and market data providers.
 - No dividend data is stored by the addon itself — everything lives in
   Wealthfolio's standard activity records.
 

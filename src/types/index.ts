@@ -1,3 +1,11 @@
+import type { FetchDividendsOptions } from "@wealthfolio/addon-sdk";
+
+// Provider-neutral dividend fetch request, keyed by asset ID in maps.
+export interface DividendRequest {
+  symbol: string;
+  options?: FetchDividendsOptions;
+}
+
 export interface DividendSuggestion {
   id: string;
   symbol: string;

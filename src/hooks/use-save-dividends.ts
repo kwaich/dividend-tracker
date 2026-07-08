@@ -1,6 +1,7 @@
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { useState } from "react";
 import type { DividendRow } from "../types";
+import { MARKET_DIVIDENDS_QUERY_KEY } from "./use-market-dividends";
 
 export function useSaveDividends(ctx: AddonContext) {
   const [saving, setSaving] = useState(false);
@@ -70,7 +71,7 @@ export function useSaveDividends(ctx: AddonContext) {
       }
 
       ctx.api.query.invalidateQueries(["activities"]);
-      ctx.api.query.invalidateQueries(["yahoo-dividends"]);
+      ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY]);
     } finally {
       setSaving(false);
     }

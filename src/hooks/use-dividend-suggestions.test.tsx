@@ -46,11 +46,12 @@ vi.mock("./use-asset-profiles", () => ({
   })),
 }));
 
-vi.mock("./use-yahoo-dividends", () => ({
-  useYahooDividends: vi.fn((_: unknown, symbols: string[]) => {
+vi.mock("./use-market-dividends", () => ({
+  MARKET_DIVIDENDS_QUERY_KEY: "market-dividends",
+  useMarketDividends: vi.fn((_: unknown, requests: Map<string, unknown>) => {
     const data = new Map<string, { amount: number; date: number }[]>();
-    for (const symbol of symbols) {
-      data.set(symbol, [{ amount: 0.5, date: 1733011200 }]); // 2024-12-01 UTC
+    for (const assetId of requests.keys()) {
+      data.set(assetId, [{ amount: 0.5, date: 1733011200 }]); // 2024-12-01 UTC
     }
     return { data, allLoaded: true, errors: [] };
   }),
