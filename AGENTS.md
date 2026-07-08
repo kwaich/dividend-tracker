@@ -17,7 +17,7 @@ missing ones.
 src/
 ├── addon.tsx              # Entry point (enable/disable lifecycle)
 ├── pages/                 # Route pages (DividendPage)
-├── components/            # Tab components (SuggestionsTab, HistoryTab)
+├── components/            # DividendSuggestions table (suggestions.tsx)
 ├── hooks/                 # Data-fetching hooks (TanStack Query)
 ├── lib/                   # Pure utility functions
 └── types/                 # Shared interfaces
@@ -40,7 +40,7 @@ src/
 ## Architecture
 
 ```
-addon.tsx → DividendPage → SuggestionsTab / HistoryTab
+addon.tsx → DividendPage → DividendSuggestions
                               ↓
                     useDividendSuggestions (orchestrator)
                     ├── useAccounts
@@ -74,14 +74,9 @@ addon.tsx → DividendPage → SuggestionsTab / HistoryTab
 - Functional components, named exports
 - Directory names: lowercase-with-dashes
 
-### Rust
-
-- Idiomatic Rust, small focused functions
-- `Result`/`Option`, propagate with `?`, `thiserror` for domain errors
-
 ### Security
 
-- All data local (SQLite), no cloud
+- All data access via host `ctx.api.*` — stays local, no cloud calls
 - Secrets via OS keyring—never disk/localStorage
 - Never log secrets or financial data
 

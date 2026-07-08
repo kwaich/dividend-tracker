@@ -6,9 +6,9 @@ Wealthfolio market data providers.
 
 ## Prerequisite
 
-This addon depends on Wealthfolio workspace packages (`@wealthfolio/ui`,
-`@wealthfolio/addon-sdk`, `@wealthfolio/addon-dev-tools`), so build/test commands
-should be run from a Wealthfolio workspace where those packages are available.
+This addon uses the published Wealthfolio packages (`@wealthfolio/ui`,
+`@wealthfolio/addon-sdk`, `@wealthfolio/addon-dev-tools`) from npm, so build/test
+commands run standalone after a `pnpm install`.
 
 ## What it does
 
@@ -24,27 +24,6 @@ should be run from a Wealthfolio workspace where those packages are available.
 - Surfaces missing dividends as pre-checked suggestions you can review and
   bulk-add
 
-## Tabs
-
-### Suggestions
-
-Shows dividends that appear in market data history but are absent from your
-Wealthfolio activities (no matching entry within ±3 days for the same symbol and
-account).
-
-Each row is editable before saving:
-
-- **Amount** — inline editable in case the provider's figure differs from what you
-  received
-- **Account** — dropdown if you hold the same symbol in multiple accounts
-
-Click **Add Selected** to create all checked dividends at once.
-
-### History
-
-Shows your existing DIVIDEND activities (most recent first), so you can verify
-what was added.
-
 ## Installation
 
 1. Download or build the `.zip` file (see [Build](#build) below)
@@ -54,11 +33,10 @@ what was added.
 ## Build
 
 ```bash
-# From wealthfolio repo — build workspace packages (one-time or after package changes)
-pnpm --filter @wealthfolio/ui build
-pnpm --filter @wealthfolio/addon-sdk build
+# Install dependencies
+pnpm install
 
-# From this repo — clean, build, and package into a zip
+# Clean, build, and package into a zip
 pnpm bundle
 ```
 
@@ -73,9 +51,8 @@ pnpm test
 The automated test suite covers:
 
 - addon registration and disable cleanup
-- page-level tab rendering
-- suggestions and history tab states and interactions
-- data hooks for accounts, holdings, asset profiles, market dividends, existing dividends, and position activities
+- page rendering
+- data hooks for accounts, holdings, asset profiles, market dividends, existing dividends, position activities, dividend suggestions, saving, and local dividend data
 - core utilities in `src/lib`
 
 For local iteration:

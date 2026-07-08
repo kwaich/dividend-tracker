@@ -1,14 +1,14 @@
 ## Project Overview
 
 Wealthfolio addon plugin. React + Vite + TanStack Query + Tailwind v4. Fetches
-Yahoo Finance dividend history, compares against existing activities, suggests
-missing ones.
+dividend history via the host market-data API, compares against existing
+activities, suggests missing ones.
 
 Key directories:
 
 - `src/addon.tsx` — Entry point (enable/disable lifecycle)
 - `src/pages/` — Route pages (DividendPage)
-- `src/components/` — Tab components (SuggestionsTab, HistoryTab)
+- `src/components/` — DividendSuggestions table (suggestions.tsx)
 - `src/hooks/` — Data-fetching hooks (TanStack Query)
 - `src/lib/` — Pure utility functions
 - `src/types/` — Shared interfaces
@@ -26,11 +26,11 @@ Key directories:
 
 ## Gotchas
 
-- **Workspace deps**: `@wealthfolio/addon-sdk` and `@wealthfolio/ui` are
-  `workspace:*` — must build from parent pnpm monorepo, not standalone.
-- **React externalized**: React and react-dom are provided as globals by the
-  Wealthfolio host (`rollup-plugin-external-globals`). Don't import them from
-  npm in runtime code.
+- **Host-provided deps**: `@wealthfolio/addon-sdk`, `@wealthfolio/ui`, React,
+  react-query, and date-fns are published on npm (standalone `pnpm install`
+  works) but are rollup `external`s at build time — the Wealthfolio host
+  resolves them at runtime (`hostProvidedDependencies` in `vite.config.ts`).
+  Don't bundle them.
 - **Addon lifecycle**: `addon.tsx` must export `enable(sdk)` and `disable()`
   — Wealthfolio calls these on install/uninstall.
 - **Test mocks**: `src/test-utils/mock-wealthfolio-ui.tsx` mocks `@wealthfolio/ui`
