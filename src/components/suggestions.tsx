@@ -1,4 +1,4 @@
-import type { AddonContext } from "@wealthfolio/addon-sdk";
+import { QueryKeys, type AddonContext } from "@wealthfolio/addon-sdk";
 import {
   Alert,
   AlertDescription,
@@ -37,6 +37,7 @@ import {
   useDataGrid,
   useIsMobile,
 } from "@wealthfolio/ui";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 interface DateRange {
@@ -54,6 +55,7 @@ import { useDividendSuggestions } from "../hooks/use-dividend-suggestions";
 import { useExistingDividends } from "../hooks/use-existing-dividends";
 import { useLocalDividendData } from "../hooks/use-local-dividend-data";
 import { MARKET_DIVIDENDS_QUERY_KEY } from "../hooks/use-market-dividends";
+import { POSITION_ACTIVITIES_QUERY_KEY } from "../hooks/use-position-activities";
 import { useSaveDividends } from "../hooks/use-save-dividends";
 import type { DividendRow } from "../types";
 
@@ -229,6 +231,18 @@ const STATUS_OPTIONS = [
   { label: "Existing", value: "existing" },
 ];
 
+// Every cached input to the suggestions pipeline. "Refresh suggestions" must
+// invalidate them all so changes made in Wealthfolio itself (deleted
+// dividends, new buys, …) are picked up, not just fresh provider data.
+const SUGGESTION_QUERY_KEYS = [
+  [QueryKeys.ACCOUNTS],
+  [QueryKeys.HOLDINGS],
+  [QueryKeys.ASSET_DATA],
+  [QueryKeys.ACTIVITIES],
+  [POSITION_ACTIVITIES_QUERY_KEY],
+  [MARKET_DIVIDENDS_QUERY_KEY],
+];
+
 export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   const [search, setSearch] = useState("");
   const [symbolFilter, setSymbolFilter] = useState<Set<string>>(new Set());
@@ -251,6 +265,18 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   );
   const { isBalanceHidden } = useBalancePrivacy();
   const isMobile = useIsMobile();
+  // Invalidate via the provider's client, not ctx.api.query: in the iframe
+  // sandbox the API proxy only reaches the host's cache, while the client
+  // invalidates locally and mirrors to the host.
+  const queryClient = useQueryClient();
+  // Background refetches keep isLoading false; drive the refresh spinner off
+  // the fetch count so clicking refresh gives visible feedback.
+  const isFetching = useIsFetching() > 0;
+  const refreshSuggestions = useCallback(() => {
+    for (const queryKey of SUGGESTION_QUERY_KEYS) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
 
   const {
     suggestions,
@@ -671,7 +697,9 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
             size="sm"
             className="ml-2 h-auto p-0 text-inherit underline"
             onClick={() =>
-              ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
+              queryClient.invalidateQueries({
+                queryKey: [MARKET_DIVIDENDS_QUERY_KEY],
+              })
             }
           >
             Retry
@@ -776,14 +804,12 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               variant="outline"
               size="icon"
               className="size-9 shrink-0"
-              onClick={() =>
-                ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
-              }
+              onClick={refreshSuggestions}
               disabled={isLoading}
             >
               <Icons.RefreshCw
                 size={14}
-                className={isLoading ? "animate-spin" : ""}
+                className={isLoading || isFetching ? "animate-spin" : ""}
               />
             </Button>
             <Button
@@ -1144,14 +1170,12 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0"
-                onClick={() =>
-                  ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
-                }
+                onClick={refreshSuggestions}
                 disabled={isLoading}
               >
                 <Icons.RefreshCw
                   size={14}
-                  className={isLoading ? "animate-spin" : ""}
+                  className={isLoading || isFetching ? "animate-spin" : ""}
                 />
               </Button>
             </TooltipTrigger>

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { useState } from "react";
 import type { DividendRow } from "../types";
@@ -5,6 +6,10 @@ import { MARKET_DIVIDENDS_QUERY_KEY } from "./use-market-dividends";
 
 export function useSaveDividends(ctx: AddonContext) {
   const [saving, setSaving] = useState(false);
+  // Invalidate via the provider's client, not ctx.api.query: in the iframe
+  // sandbox the API proxy only reaches the host's cache, while the client
+  // invalidates locally and mirrors to the host.
+  const queryClient = useQueryClient();
 
   const save = async (rows: DividendRow[]) => {
     const valid = rows.filter((r) => r.status === "new");
@@ -70,8 +75,10 @@ export function useSaveDividends(ctx: AddonContext) {
         );
       }
 
-      ctx.api.query.invalidateQueries(["activities"]);
-      ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY]);
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+      queryClient.invalidateQueries({
+        queryKey: [MARKET_DIVIDENDS_QUERY_KEY],
+      });
     } finally {
       setSaving(false);
     }

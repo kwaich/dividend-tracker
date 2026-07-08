@@ -1,7 +1,7 @@
 {
   "id": "dividend-tracker-addon",
   "name": "Dividends Importer",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Find and add missing dividend activities by fetching historical market data",
   "author": "kwaich",
   "main": "dist/addon.js",
@@ -73,9 +73,10 @@
       "category": "ui",
       "functions": [
         { "name": "sidebar.addItem", "isDeclared": true, "isDetected": false },
-        { "name": "router.add", "isDeclared": true, "isDetected": false }
+        { "name": "router.add", "isDeclared": true, "isDetected": false },
+        { "name": "onDisable", "isDeclared": true, "isDetected": false }
       ],
-      "purpose": "Navigation"
+      "purpose": "Navigation and addon lifecycle cleanup"
     }
   ],
   "keywords": ["wealthfolio", "addon"],

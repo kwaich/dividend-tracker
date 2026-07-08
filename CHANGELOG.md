@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-08
+
+### Fixed
+
+- Saved dividends now flip to "existing" without reloading the page. In the
+  Wealthfolio 3.6 iframe sandbox, query invalidations went to the host's query
+  cache instead of the addon's own, so the table never refreshed after saving.
+- Refresh and Retry now actually update the table: market dividends, asset
+  profiles, and position activities ignored refetched data once initially
+  loaded.
+- "Refresh suggestions" refreshes all inputs (accounts, holdings, asset
+  profiles, activities, and dividend data), so changes made in Wealthfolio
+  itself are picked up too — and the refresh icon spins while data is being
+  refetched.
+
+### Added
+
+- GitHub Actions CI: format check, type check, lint, build, and tests on every
+  push and pull request.
+
+### Changed
+
+- Declared the `ui.onDisable` permission in the manifest.
+
 ## [1.1.2] - 2026-07-04
 
 ### Changed

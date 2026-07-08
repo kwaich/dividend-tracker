@@ -1,12 +1,26 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MARKET_DIVIDENDS_QUERY_KEY } from "./use-market-dividends";
 import { useSaveDividends } from "./use-save-dividends";
 import type { DividendRow } from "../types";
 
 afterEach(() => cleanup());
+
+// The addon mounts its React tree with the client from
+// ctx.api.query.getClient(); invalidations must go through that client
+// (not the ctx.api.query proxy, which only reaches the host's cache in iframe sandbox)
+function makeWrapper() {
+  const client = new QueryClient();
+  const invalidateQueries = vi.spyOn(client, "invalidateQueries");
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return { wrapper, invalidateQueries };
+}
 
 function makeRow(overrides: Partial<DividendRow> = {}): DividendRow {
   return {
@@ -77,7 +91,8 @@ describe("useSaveDividends", () => {
       }),
     );
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { wrapper, invalidateQueries: clientInvalidate } = makeWrapper();
+    const { result } = renderHook(() => useSaveDividends(ctx), { wrapper });
 
     await act(async () => {
       await result.current.save([
@@ -90,10 +105,14 @@ describe("useSaveDividends", () => {
     expect(saveMany).toHaveBeenCalledTimes(2);
     expect(toast.success).toHaveBeenCalledWith("3 dividends added");
     expect(toast.warning).not.toHaveBeenCalled();
-    expect(invalidateQueries).toHaveBeenCalledWith(["activities"]);
-    expect(invalidateQueries).toHaveBeenCalledWith([
-      MARKET_DIVIDENDS_QUERY_KEY,
-    ]);
+    expect(clientInvalidate).toHaveBeenCalledWith({
+      queryKey: ["activities"],
+    });
+    expect(clientInvalidate).toHaveBeenCalledWith({
+      queryKey: [MARKET_DIVIDENDS_QUERY_KEY],
+    });
+    // The API-proxy path only reaches the host cache in the sandbox.
+    expect(invalidateQueries).not.toHaveBeenCalled();
   });
 
   it("skips non-new rows without counting them as failures", async () => {
@@ -105,7 +124,9 @@ describe("useSaveDividends", () => {
       }),
     );
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
 
     await act(async () => {
       await result.current.save([
@@ -133,7 +154,9 @@ describe("useSaveDividends", () => {
       ],
     });
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
 
     await act(async () => {
       await result.current.save([makeRow()]);
@@ -154,7 +177,9 @@ describe("useSaveDividends", () => {
       .mockRejectedValueOnce(new Error("network down"))
       .mockResolvedValueOnce({ created: [{ id: "ok" }], errors: [] });
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
 
     await act(async () => {
       await result.current.save([
@@ -173,7 +198,9 @@ describe("useSaveDividends", () => {
   it("no-ops when no new rows are provided", async () => {
     const { ctx, saveMany, toast } = makeCtx();
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
 
     await act(async () => {
       await result.current.save([makeRow({ status: "existing" })]);
@@ -193,7 +220,9 @@ describe("useSaveDividends", () => {
       }),
     );
 
-    const { result } = renderHook(() => useSaveDividends(ctx));
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
 
     let savePromise!: Promise<void>;
     act(() => {

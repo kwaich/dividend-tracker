@@ -9,12 +9,12 @@ import { usePositionActivities } from "./use-position-activities";
 afterEach(() => cleanup());
 
 function makeWrapper() {
-  const qc = new QueryClient({
+  const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const Wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: qc }, children);
-  return Wrapper;
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return { client, wrapper };
 }
 
 function makeCtx(
@@ -51,7 +51,7 @@ describe("usePositionActivities", () => {
     const ctx = makeCtx(vi.fn());
     const { result } = renderHook(
       () => usePositionActivities(ctx, [], new Map()),
-      { wrapper: makeWrapper() },
+      { wrapper: makeWrapper().wrapper },
     );
 
     expect(result.current.data.size).toBe(0);
@@ -74,7 +74,7 @@ describe("usePositionActivities", () => {
     ]);
 
     renderHook(() => usePositionActivities(ctx, ["AAPL"], symbolMap), {
-      wrapper: makeWrapper(),
+      wrapper: makeWrapper().wrapper,
     });
 
     await waitFor(() => {
@@ -94,12 +94,55 @@ describe("usePositionActivities", () => {
 
     const { result } = renderHook(
       () => usePositionActivities(ctx, ["AAPL"], new Map()),
-      { wrapper: makeWrapper() },
+      { wrapper: makeWrapper().wrapper },
     );
 
     await waitFor(() => {
       expect(result.current.allLoaded).toBe(true);
       expect(result.current.data.get("AAPL")).toEqual([buyActivity]);
+    });
+  });
+
+  it("reflects refetched data after query invalidation", async () => {
+    const search = vi.fn().mockResolvedValue({ data: [buyActivity] });
+    const ctx = makeCtx(search);
+    const { client, wrapper } = makeWrapper();
+
+    // Stable references — fresh ones each render would recompute the memos
+    // and mask the stale-data bug this test guards against.
+    const symbols = ["AAPL"];
+    const symbolMap = new Map<
+      string,
+      {
+        symbol: string;
+        accountIds: string[];
+        currency: string;
+        assetId: string;
+      }
+    >();
+    const { result } = renderHook(
+      () => usePositionActivities(ctx, symbols, symbolMap),
+      { wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.data.get("AAPL")).toEqual([buyActivity]);
+    });
+
+    const sellActivity = {
+      ...buyActivity,
+      id: "sell-1",
+      activityType: "SELL",
+    } as ActivityDetails;
+    search.mockResolvedValue({ data: [buyActivity, sellActivity] });
+
+    await client.invalidateQueries({ queryKey: ["position-activities"] });
+
+    await waitFor(() => {
+      expect(result.current.data.get("AAPL")).toEqual([
+        buyActivity,
+        sellActivity,
+      ]);
     });
   });
 
@@ -115,7 +158,7 @@ describe("usePositionActivities", () => {
 
     const { result } = renderHook(
       () => usePositionActivities(ctx, ["AAPL"], new Map()),
-      { wrapper: makeWrapper() },
+      { wrapper: makeWrapper().wrapper },
     );
 
     expect(result.current.allLoaded).toBe(false);

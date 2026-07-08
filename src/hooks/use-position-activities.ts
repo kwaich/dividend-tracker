@@ -1,7 +1,9 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, type UseQueryResult } from "@tanstack/react-query";
 import type { ActivityDetails, AddonContext } from "@wealthfolio/addon-sdk";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { POSITION_ACTIVITY_TYPES } from "../lib/quantity-timeline";
+
+export const POSITION_ACTIVITIES_QUERY_KEY = "position-activities";
 
 export function usePositionActivities(
   ctx: AddonContext,
@@ -11,13 +13,13 @@ export function usePositionActivities(
     { symbol: string; accountIds: string[]; currency: string; assetId: string }
   >,
 ): { data: Map<string, ActivityDetails[]>; allLoaded: boolean } {
-  const queries = useQueries({
+  return useQueries({
     queries: useMemo(
       () =>
         symbols.map((symbol) => {
           const assetId = symbolMap.get(symbol)?.assetId ?? symbol;
           return {
-            queryKey: ["position-activities", symbol],
+            queryKey: [POSITION_ACTIVITIES_QUERY_KEY, symbol],
             queryFn: async () => {
               const res = await ctx.api.activities.search(
                 0,
@@ -33,19 +35,16 @@ export function usePositionActivities(
         }),
       [symbols, symbolMap, ctx.api.activities],
     ),
+    // combine recomputes on every result change (including refetches), unlike
+    // a memo gated on allLoaded, which stays true while settled queries refetch.
+    combine: useCallback(
+      (results: UseQueryResult<ActivityDetails[], Error>[]) => ({
+        data: new Map(
+          symbols.map((symbol, i) => [symbol, results[i]?.data ?? []]),
+        ),
+        allLoaded: results.length === 0 || results.every((q) => !q.isLoading),
+      }),
+      [symbols],
+    ),
   });
-
-  const allLoaded = queries.length === 0 || queries.every((q) => !q.isLoading);
-
-  const data = useMemo(() => {
-    const map = new Map<string, ActivityDetails[]>();
-    symbols.forEach((symbol, i) => {
-      map.set(symbol, queries[i]?.data ?? []);
-    });
-    return map;
-    // Recompute only when loading state settles or the symbol list changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allLoaded, symbols]);
-
-  return { data, allLoaded };
 }

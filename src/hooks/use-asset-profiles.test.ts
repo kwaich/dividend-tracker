@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, cleanup, waitFor } from "@testing-library/react";
-import type { AddonContext, Asset } from "@wealthfolio/addon-sdk";
+import {
+  QueryKeys,
+  type AddonContext,
+  type Asset,
+} from "@wealthfolio/addon-sdk";
 import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAssetProfiles } from "./use-asset-profiles";
@@ -9,12 +13,12 @@ import { useAssetProfiles } from "./use-asset-profiles";
 afterEach(() => cleanup());
 
 function makeWrapper() {
-  const qc = new QueryClient({
+  const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const Wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: qc }, children);
-  return Wrapper;
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return { client, wrapper };
 }
 
 function makeCtx(getProfileFn: (id: string) => Promise<Asset>): AddonContext {
@@ -38,7 +42,7 @@ describe("useAssetProfiles", () => {
   it("returns empty profiles and allLoaded:true when instrumentIds is empty", () => {
     const ctx = makeCtx(vi.fn());
     const { result } = renderHook(() => useAssetProfiles(ctx, []), {
-      wrapper: makeWrapper(),
+      wrapper: makeWrapper().wrapper,
     });
 
     expect(result.current.profiles).toEqual([]);
@@ -50,12 +54,41 @@ describe("useAssetProfiles", () => {
     const ctx = makeCtx(getProfile);
 
     const { result } = renderHook(() => useAssetProfiles(ctx, ["asset-1"]), {
-      wrapper: makeWrapper(),
+      wrapper: makeWrapper().wrapper,
     });
 
     await waitFor(() => {
       expect(result.current.allLoaded).toBe(true);
       expect(result.current.profiles).toEqual([fakeAsset]);
+    });
+  });
+
+  it("reflects refetched data after query invalidation", async () => {
+    const getProfile = vi.fn().mockResolvedValue(fakeAsset);
+    const ctx = makeCtx(getProfile);
+    const { client, wrapper } = makeWrapper();
+
+    // Stable reference — a fresh array each render would recompute the memo
+    // and mask the stale-data bug this test guards against.
+    const instrumentIds = ["asset-1"];
+    const { result } = renderHook(() => useAssetProfiles(ctx, instrumentIds), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.profiles).toEqual([fakeAsset]);
+    });
+
+    const updatedAsset = {
+      ...fakeAsset,
+      instrumentSymbol: "AAPL.NEW",
+    } as Asset;
+    getProfile.mockResolvedValue(updatedAsset);
+
+    await client.invalidateQueries({ queryKey: [QueryKeys.ASSET_DATA] });
+
+    await waitFor(() => {
+      expect(result.current.profiles).toEqual([updatedAsset]);
     });
   });
 
@@ -70,7 +103,7 @@ describe("useAssetProfiles", () => {
     const ctx = makeCtx(getProfile);
 
     const { result } = renderHook(() => useAssetProfiles(ctx, ["asset-1"]), {
-      wrapper: makeWrapper(),
+      wrapper: makeWrapper().wrapper,
     });
 
     expect(result.current.allLoaded).toBe(false);

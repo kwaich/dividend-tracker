@@ -1,16 +1,16 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, type UseQueryResult } from "@tanstack/react-query";
 import {
   QueryKeys,
   type AddonContext,
   type Asset,
 } from "@wealthfolio/addon-sdk";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export function useAssetProfiles(
   ctx: AddonContext,
   instrumentIds: string[],
 ): { profiles: (Asset | undefined)[]; allLoaded: boolean } {
-  const queries = useQueries({
+  return useQueries({
     queries: useMemo(
       () =>
         instrumentIds.map((id) => ({
@@ -20,17 +20,15 @@ export function useAssetProfiles(
         })),
       [instrumentIds, ctx.api.assets],
     ),
+    // combine recomputes on every result change (including refetches), unlike
+    // a memo gated on allLoaded, which stays true while settled queries refetch.
+    combine: useCallback(
+      (results: UseQueryResult<Asset, Error>[]) => ({
+        profiles: results.map((q) => q.data),
+        allLoaded:
+          instrumentIds.length === 0 || results.every((q) => !q.isLoading),
+      }),
+      [instrumentIds],
+    ),
   });
-
-  const allLoaded =
-    instrumentIds.length === 0 || queries.every((q) => !q.isLoading);
-
-  const profiles = useMemo(
-    () => queries.map((q) => q.data),
-    // Recompute only when loading state settles or the instrument list changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allLoaded, instrumentIds],
-  );
-
-  return { profiles, allLoaded };
 }
