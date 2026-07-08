@@ -67,9 +67,6 @@
     "manifest.json"
   ],
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "msw"
-    ]
+    "onlyBuiltDependencies": ["esbuild", "msw"]
   }
 }
