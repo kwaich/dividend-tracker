@@ -50,6 +50,7 @@ import React, {
 import { useDividendSuggestions } from "../hooks/use-dividend-suggestions";
 import { useExistingDividends } from "../hooks/use-existing-dividends";
 import { useLocalDividendData } from "../hooks/use-local-dividend-data";
+import { MARKET_DIVIDENDS_QUERY_KEY } from "../hooks/use-market-dividends";
 import { useSaveDividends } from "../hooks/use-save-dividends";
 import type { DividendRow } from "../types";
 
@@ -667,7 +668,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
             size="sm"
             className="ml-2 h-auto p-0 text-inherit underline"
             onClick={() =>
-              ctx.api.query.invalidateQueries(["market-dividends"])
+              ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
             }
           >
             Retry
@@ -773,7 +774,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               size="icon"
               className="size-9 shrink-0"
               onClick={() =>
-                ctx.api.query.invalidateQueries(["market-dividends"])
+                ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
               }
               disabled={isLoading}
             >
@@ -1141,7 +1142,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                 size="sm"
                 className="h-8 w-8 p-0"
                 onClick={() =>
-                  ctx.api.query.invalidateQueries(["market-dividends"])
+                  ctx.api.query.invalidateQueries([MARKET_DIVIDENDS_QUERY_KEY])
                 }
                 disabled={isLoading}
               >

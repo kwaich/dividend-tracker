@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MARKET_DIVIDENDS_QUERY_KEY } from "./use-market-dividends";
 import { useSaveDividends } from "./use-save-dividends";
 import type { DividendRow } from "../types";
 
@@ -90,7 +91,9 @@ describe("useSaveDividends", () => {
     expect(toast.success).toHaveBeenCalledWith("3 dividends added");
     expect(toast.warning).not.toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledWith(["activities"]);
-    expect(invalidateQueries).toHaveBeenCalledWith(["market-dividends"]);
+    expect(invalidateQueries).toHaveBeenCalledWith([
+      MARKET_DIVIDENDS_QUERY_KEY,
+    ]);
   });
 
   it("skips non-new rows without counting them as failures", async () => {
