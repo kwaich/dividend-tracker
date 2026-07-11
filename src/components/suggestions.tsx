@@ -58,6 +58,12 @@ import { MARKET_DIVIDENDS_QUERY_KEY } from "../hooks/use-market-dividends";
 import { POSITION_ACTIVITIES_QUERY_KEY } from "../hooks/use-position-activities";
 import { useSaveDividends } from "../hooks/use-save-dividends";
 import type { DividendRow } from "../types";
+import {
+  computeWithholdingTax,
+  loadWithholdingRate,
+  sanitizeRate,
+  saveWithholdingRate,
+} from "../lib/withholding";
 
 function DateRangePicker({
   dateRange,
@@ -209,6 +215,11 @@ function MobileRow({
                 ? "••••"
                 : formatAmount(item.amount, item.currency)}
             </div>
+            {!isBalanceHidden && item.tax != null && item.tax > 0 && (
+              <div className="text-muted-foreground text-xs tabular-nums">
+                −{formatAmount(item.tax, item.currency)}
+              </div>
+            )}
             <div className="text-muted-foreground max-w-[120px] truncate text-xs">
               {accountName}
             </div>
@@ -265,6 +276,14 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   );
   const { isBalanceHidden } = useBalancePrivacy();
   const isMobile = useIsMobile();
+  const [ratePct, setRatePct] = useState<number | undefined>(
+    loadWithholdingRate,
+  );
+  const handleRateChange = useCallback((raw: string) => {
+    const v = sanitizeRate(raw === "" ? undefined : Number(raw));
+    setRatePct(v);
+    saveWithholdingRate(v);
+  }, []);
   // Invalidate via the provider's client, not ctx.api.query: in the iframe
   // sandbox the API proxy only reaches the host's cache, while the client
   // invalidates locally and mirrors to the host.
@@ -303,6 +322,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: a.accountId,
       accountName: a.accountName,
       availableAccountIds: [a.accountId],
+      tax: a.tax != null ? Number(a.tax) : undefined,
     }));
   }, [existingDivs]);
 
@@ -328,6 +348,27 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
 
   const { localData, setLocalData, onDataChange, dataKey } =
     useLocalDividendData(newRows, existingRows);
+
+  // Recompute tax on all new rows whenever the withholding rate changes, or
+  // whenever the dataset changes (new rows arrive). This overwrites any
+  // per-row tax edits — per-row edits only persist until the next rate
+  // change. Editing a row's Amount does not recompute its tax.
+  useEffect(() => {
+    setLocalData((prev) =>
+      prev.map((r) =>
+        r.status !== "new"
+          ? r
+          : {
+              ...r,
+              tax:
+                ratePct == null
+                  ? undefined
+                  : computeWithholdingTax(r.amount, ratePct),
+            },
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataKey, ratePct]);
 
   const { save, saving } = useSaveDividends(ctx);
 
@@ -480,6 +521,26 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           return undefined;
         },
         meta: { cell: { variant: "number" as const, step: 0.0001 } },
+      },
+      {
+        accessorKey: "tax",
+        header: "Tax",
+        size: 110,
+        enableSorting: false,
+        cell: ({ row }) => {
+          if (row.original.status === "existing") {
+            if (isBalanceHidden) return <span>••••</span>;
+            return (
+              <span className="text-sm tabular-nums">
+                {row.original.tax != null
+                  ? formatAmount(row.original.tax, row.original.currency)
+                  : "—"}
+              </span>
+            );
+          }
+          return undefined;
+        },
+        meta: { cell: { variant: "number" as const, step: 0.01 } },
       },
       {
         accessorKey: "currency",
@@ -657,6 +718,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: item.accountId,
       amount: item.amount,
       payDate: item.payDate,
+      tax: item.tax,
     });
   };
 
@@ -826,6 +888,26 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                 </>
               )}
             </Button>
+          </div>
+
+          {/* Withholding rate — applies to all new rows */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Label
+              htmlFor="withholding-rate-mobile"
+              className="text-muted-foreground text-xs whitespace-nowrap"
+            >
+              Withholding %
+            </Label>
+            <Input
+              id="withholding-rate-mobile"
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              className="h-8 w-20"
+              value={ratePct ?? ""}
+              onChange={(e) => handleRateChange(e.target.value)}
+            />
           </div>
 
           {/* Filter sheet — activity-style bottom sheet */}
@@ -1115,6 +1197,23 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <Label>Tax ({editRow?.currency})</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editLocal.tax ?? ""}
+                    onChange={(e) =>
+                      setEditLocal((prev) => ({
+                        ...prev,
+                        tax:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label>Pay Date (optional)</Label>
                   <Input
                     type="date"
@@ -1284,6 +1383,24 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               <Icons.Close className="ml-1" size={14} />
             </Button>
           )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Label
+              htmlFor="withholding-rate"
+              className="text-muted-foreground text-xs whitespace-nowrap"
+            >
+              Withholding %
+            </Label>
+            <Input
+              id="withholding-rate"
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              className="h-8 w-20"
+              value={ratePct ?? ""}
+              onChange={(e) => handleRateChange(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* DataGrid */}

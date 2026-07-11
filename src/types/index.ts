@@ -36,4 +36,5 @@ export interface DividendRow {
   accountId: string;
   accountName?: string;
   availableAccountIds: string[];
+  tax?: number;
 }

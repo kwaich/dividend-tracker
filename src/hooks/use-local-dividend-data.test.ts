@@ -84,6 +84,42 @@ describe("useLocalDividendData", () => {
     expect(result.current.localData[0].amount).toBe(99);
   });
 
+  it("preserves a tax edit on a new row across re-renders that don't change ids", () => {
+    const newRows = [row("n1", "2024-03-01", "new", { amount: 100 })];
+    const existing: DividendRow[] = [];
+
+    const { result, rerender } = renderHook(() =>
+      useLocalDividendData(newRows, existing),
+    );
+
+    act(() => {
+      result.current.onDataChange([
+        { ...result.current.localData[0], tax: 15 },
+      ]);
+    });
+
+    expect(result.current.localData[0].tax).toBe(15);
+
+    rerender();
+    expect(result.current.localData[0].tax).toBe(15);
+  });
+
+  it("discards a tax edit on an existing row in onDataChange", () => {
+    const existing = [
+      row("e1", "2024-02-01", "existing", { amount: 5, tax: 1 }),
+    ];
+
+    const { result } = renderHook(() => useLocalDividendData([], existing));
+
+    act(() => {
+      result.current.onDataChange([
+        { ...result.current.localData[0], tax: 99 },
+      ]);
+    });
+
+    expect(result.current.localData[0].tax).toBe(1);
+  });
+
   it("ignores edits on existing rows in onDataChange", () => {
     const existing = [row("e1", "2024-02-01", "existing", { amount: 5 })];
 
