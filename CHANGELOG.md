@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-11
+
+### Added
+
+- Withholding tax for suggested dividends. Enter a withholding rate (%) above
+  the suggestions table to pre-fill each new row's tax as `amount × rate`; each
+  row's tax stays individually editable. Saved dividends keep the gross amount
+  and record the withholding in the activity's tax field, so the host credits
+  the net cash. The last-used rate is remembered between sessions.
+
 ## [1.2.0] - 2026-07-08
 
 ### Fixed
