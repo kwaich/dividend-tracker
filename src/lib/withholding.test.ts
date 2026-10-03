@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   computeWithholdingTax,
+  effectiveTax,
   loadWithholdingRate,
+  parseExistingTax,
   sanitizeRate,
+  sanitizeTax,
   saveWithholdingRate,
   WITHHOLDING_RATE_STORAGE_KEY,
 } from "./withholding";
@@ -52,6 +55,65 @@ describe("sanitizeRate", () => {
     expect(sanitizeRate("abc")).toBeUndefined();
     expect(sanitizeRate(undefined)).toBeUndefined();
     expect(sanitizeRate(null)).toBeUndefined();
+  });
+});
+
+describe("effectiveTax", () => {
+  it("derives tax from amount and rate when there is no override", () => {
+    expect(effectiveTax(100, 15, undefined)).toBe(15);
+  });
+
+  it("re-derives when the amount changes (no override)", () => {
+    expect(effectiveTax(1000, 15, undefined)).toBe(150);
+  });
+
+  it("returns undefined when no rate and no override", () => {
+    expect(effectiveTax(100, undefined, undefined)).toBeUndefined();
+  });
+
+  it("prefers a per-row override over the derived value", () => {
+    expect(effectiveTax(100, 15, 20)).toBe(20);
+  });
+
+  it("treats a zero override as an explicit value, not absent", () => {
+    expect(effectiveTax(100, 15, 0)).toBe(0);
+  });
+});
+
+describe("sanitizeTax", () => {
+  it("keeps a positive tax rounded to 2dp", () => {
+    expect(sanitizeTax(15.5)).toBe(15.5);
+    expect(sanitizeTax(15.1234)).toBe(15.12);
+  });
+
+  it("maps undefined, zero, and negative to null", () => {
+    expect(sanitizeTax(undefined)).toBeNull();
+    expect(sanitizeTax(0)).toBeNull();
+    expect(sanitizeTax(-5)).toBeNull();
+  });
+
+  it("maps non-finite values to null", () => {
+    expect(sanitizeTax(Infinity)).toBeNull();
+    expect(sanitizeTax(NaN)).toBeNull();
+  });
+});
+
+describe("parseExistingTax", () => {
+  it("parses a positive numeric string", () => {
+    expect(parseExistingTax("15")).toBe(15);
+    expect(parseExistingTax(15)).toBe(15);
+  });
+
+  it("collapses empty, zero, non-numeric, and nullish to undefined", () => {
+    expect(parseExistingTax("")).toBeUndefined();
+    expect(parseExistingTax("0")).toBeUndefined();
+    expect(parseExistingTax("abc")).toBeUndefined();
+    expect(parseExistingTax(null)).toBeUndefined();
+    expect(parseExistingTax(undefined)).toBeUndefined();
+  });
+
+  it("rejects negative stored values", () => {
+    expect(parseExistingTax("-5")).toBeUndefined();
   });
 });
 

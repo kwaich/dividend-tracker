@@ -80,6 +80,14 @@ export const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input {...props} />
 );
 
+// ── Label ──────────────────────────────────────────────────────
+export const Label = ({
+  children,
+  ...props
+}: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+  <label {...props}>{children}</label>
+);
+
 // ── DatePickerInput ────────────────────────────────────────────
 export const DatePickerInput = ({
   value,

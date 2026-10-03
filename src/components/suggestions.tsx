@@ -59,11 +59,12 @@ import { POSITION_ACTIVITIES_QUERY_KEY } from "../hooks/use-position-activities"
 import { useSaveDividends } from "../hooks/use-save-dividends";
 import type { DividendRow } from "../types";
 import {
-  computeWithholdingTax,
+  effectiveTax,
   loadWithholdingRate,
-  sanitizeRate,
+  parseExistingTax,
   saveWithholdingRate,
 } from "../lib/withholding";
+import { WithholdingRateInput } from "./withholding-rate-input";
 
 function DateRangePicker({
   dateRange,
@@ -279,10 +280,9 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   const [ratePct, setRatePct] = useState<number | undefined>(
     loadWithholdingRate,
   );
-  const handleRateChange = useCallback((raw: string) => {
-    const v = sanitizeRate(raw === "" ? undefined : Number(raw));
-    setRatePct(v);
-    saveWithholdingRate(v);
+  const handleRateChange = useCallback((rate: number | undefined) => {
+    setRatePct(rate);
+    saveWithholdingRate(rate);
   }, []);
   // Invalidate via the provider's client, not ctx.api.query: in the iframe
   // sandbox the API proxy only reaches the host's cache, while the client
@@ -322,7 +322,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: a.accountId,
       accountName: a.accountName,
       availableAccountIds: [a.accountId],
-      tax: a.tax != null ? Number(a.tax) : undefined,
+      tax: parseExistingTax(a.tax),
     }));
   }, [existingDivs]);
 
@@ -349,26 +349,42 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   const { localData, setLocalData, onDataChange, dataKey } =
     useLocalDividendData(newRows, existingRows);
 
-  // Recompute tax on all new rows whenever the withholding rate changes, or
-  // whenever the dataset changes (new rows arrive). This overwrites any
-  // per-row tax edits — per-row edits only persist until the next rate
-  // change. Editing a row's Amount does not recompute its tax.
-  useEffect(() => {
-    setLocalData((prev) =>
-      prev.map((r) =>
-        r.status !== "new"
-          ? r
-          : {
-              ...r,
-              tax:
-                ratePct == null
-                  ? undefined
-                  : computeWithholdingTax(r.amount, ratePct),
-            },
+  // Feed the grid rows whose `tax` is derived on the fly from the current
+  // amount, rate, and any per-row override. Tax is never materialised into
+  // stored state, so editing Amount or changing the rate keeps it correct
+  // without an effect that could clobber edits on an unrelated re-render.
+  const gridData = useMemo(
+    () =>
+      localData.map((r) =>
+        r.status === "new"
+          ? { ...r, tax: effectiveTax(r.amount, ratePct, r.taxOverride) }
+          : r,
       ),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataKey, ratePct]);
+    [localData, ratePct],
+  );
+  const gridDataRef = useRef(gridData);
+  gridDataRef.current = gridData;
+
+  // The grid hands back the full row set carrying the derived `tax` we fed it.
+  // A change to a new row's tax means the user edited it directly → store it
+  // as a per-row override; any other edit (e.g. Amount) leaves the override
+  // alone so tax re-derives. The transient derived `tax` is dropped so stored
+  // state holds only the override.
+  const handleDataChange = useCallback(
+    (next: DividendRow[]) => {
+      const prevById = new Map(gridDataRef.current.map((r) => [r.id, r]));
+      onDataChange(
+        next.map((r) => {
+          if (r.status !== "new") return r;
+          const prev = prevById.get(r.id);
+          const taxOverride =
+            prev && r.tax !== prev.tax ? (r.tax ?? undefined) : r.taxOverride;
+          return { ...r, tax: undefined, taxOverride };
+        }),
+      );
+    },
+    [onDataChange],
+  );
 
   const { save, saving } = useSaveDividends(ctx);
 
@@ -599,7 +615,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   }, []);
 
   const dataGrid = useDataGrid<DividendRow>({
-    data: localData,
+    data: gridData,
     columns,
     getRowId: (row) => row.id,
     enableRowSelection: (row) => row.original.status === "new",
@@ -618,7 +634,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           .includes(q)
       );
     },
-    onDataChange,
+    onDataChange: handleDataChange,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta: { getCellState } as any,
     initialState: {
@@ -718,7 +734,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: item.accountId,
       amount: item.amount,
       payDate: item.payDate,
-      tax: item.tax,
+      taxOverride: item.taxOverride,
     });
   };
 
@@ -891,22 +907,11 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           </div>
 
           {/* Withholding rate — applies to all new rows */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Label
-              htmlFor="withholding-rate-mobile"
-              className="text-muted-foreground text-xs whitespace-nowrap"
-            >
-              Withholding %
-            </Label>
-            <Input
+          <div className="flex shrink-0 items-center">
+            <WithholdingRateInput
               id="withholding-rate-mobile"
-              type="number"
-              min={0}
-              max={100}
-              step={0.01}
-              className="h-8 w-20"
-              value={ratePct ?? ""}
-              onChange={(e) => handleRateChange(e.target.value)}
+              ratePct={ratePct}
+              onCommit={handleRateChange}
             />
           </div>
 
@@ -1200,12 +1205,20 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                   <Label>Tax ({editRow?.currency})</Label>
                   <Input
                     type="number"
+                    min={0}
                     step="0.01"
-                    value={editLocal.tax ?? ""}
+                    placeholder={
+                      ratePct != null && editLocal.amount != null
+                        ? String(
+                            effectiveTax(editLocal.amount, ratePct, undefined),
+                          )
+                        : undefined
+                    }
+                    value={editLocal.taxOverride ?? ""}
                     onChange={(e) =>
                       setEditLocal((prev) => ({
                         ...prev,
-                        tax:
+                        taxOverride:
                           e.target.value === ""
                             ? undefined
                             : Number(e.target.value),
@@ -1383,22 +1396,11 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               <Icons.Close className="ml-1" size={14} />
             </Button>
           )}
-          <div className="ml-auto flex items-center gap-1.5">
-            <Label
-              htmlFor="withholding-rate"
-              className="text-muted-foreground text-xs whitespace-nowrap"
-            >
-              Withholding %
-            </Label>
-            <Input
+          <div className="ml-auto flex items-center">
+            <WithholdingRateInput
               id="withholding-rate"
-              type="number"
-              min={0}
-              max={100}
-              step={0.01}
-              className="h-8 w-20"
-              value={ratePct ?? ""}
-              onChange={(e) => handleRateChange(e.target.value)}
+              ratePct={ratePct}
+              onCommit={handleRateChange}
             />
           </div>
         </div>

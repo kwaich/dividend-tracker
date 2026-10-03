@@ -151,6 +151,42 @@ describe("useSaveDividends", () => {
     expect(arg.creates?.[1].tax).toBeNull();
   });
 
+  it("sends null tax for negative or non-finite per-row tax", async () => {
+    const { ctx, saveMany } = makeCtx();
+    saveMany.mockResolvedValue({ created: [{ id: "ok" }], errors: [] });
+
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.save([
+        makeRow({ id: "n1", tax: -5 }),
+        makeRow({ id: "n2", tax: Infinity }),
+      ]);
+    });
+
+    const arg = saveMany.mock.calls[0][0] as SaveManyArg;
+    expect(arg.creates?.[0].tax).toBeNull();
+    expect(arg.creates?.[1].tax).toBeNull();
+  });
+
+  it("rounds a per-row tax to 2 decimal places", async () => {
+    const { ctx, saveMany } = makeCtx();
+    saveMany.mockResolvedValue({ created: [{ id: "ok" }], errors: [] });
+
+    const { result } = renderHook(() => useSaveDividends(ctx), {
+      wrapper: makeWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.save([makeRow({ tax: 15.129 })]);
+    });
+
+    const arg = saveMany.mock.calls[0][0] as SaveManyArg;
+    expect(arg.creates?.[0].tax).toBe(15.13);
+  });
+
   it("skips non-new rows without counting them as failures", async () => {
     const { ctx, saveMany, toast } = makeCtx();
     saveMany.mockImplementation((arg: SaveManyArg) =>

@@ -36,5 +36,11 @@ export interface DividendRow {
   accountId: string;
   accountName?: string;
   availableAccountIds: string[];
+  /**
+   * Effective withholding tax. For existing rows this is the stored host value;
+   * for new rows it is derived from amount × rate unless `taxOverride` is set.
+   */
   tax?: number;
+  /** Per-row manual tax entered by the user; overrides the rate-derived value. */
+  taxOverride?: number;
 }

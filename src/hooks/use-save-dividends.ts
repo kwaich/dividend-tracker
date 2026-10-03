@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 import { useState } from "react";
 import type { DividendRow } from "../types";
+import { sanitizeTax } from "../lib/withholding";
 import { MARKET_DIVIDENDS_QUERY_KEY } from "./use-market-dividends";
 
 export function useSaveDividends(ctx: AddonContext) {
@@ -38,7 +39,7 @@ export function useSaveDividends(ctx: AddonContext) {
               asset: { id: s.assetId },
               amount: s.amount,
               currency: s.currency,
-              tax: s.tax || null,
+              tax: sanitizeTax(s.tax),
               comment: s.payDate ? `ex-date:${s.date}` : null,
             })),
           }),
