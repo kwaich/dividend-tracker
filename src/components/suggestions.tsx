@@ -291,11 +291,14 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   // Background refetches keep isLoading false; drive the refresh spinner off
   // the fetch count so clicking refresh gives visible feedback.
   const isFetching = useIsFetching() > 0;
+  const refreshPending = useRef(false);
   const refreshSuggestions = useCallback(() => {
+    ctx.api.logger.info("Refreshing dividend suggestions");
+    refreshPending.current = true;
     for (const queryKey of SUGGESTION_QUERY_KEYS) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [queryClient]);
+  }, [queryClient, ctx.api.logger]);
 
   const {
     suggestions,
@@ -308,6 +311,19 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     useExistingDividends(ctx);
 
   const isLoading = suggestionsLoading || existingLoading;
+
+  // Toast once the refetch started by a refresh click settles (not on page
+  // load). Runs when isFetching drops back to false after the click.
+  useEffect(() => {
+    if (!refreshPending.current || isLoading || isFetching) return;
+    refreshPending.current = false;
+    const message = `Refreshed: ${suggestions.length} new suggestion${suggestions.length !== 1 ? "s" : ""}`;
+    if (errors.length) {
+      ctx.api.toast.warning(`${message}, ${errors.length} failed`);
+    } else {
+      ctx.api.toast.success(message);
+    }
+  }, [isLoading, isFetching, suggestions, errors, ctx.api.toast]);
 
   const existingRows = useMemo<DividendRow[]>(() => {
     if (!existingDivs) return [];
@@ -774,11 +790,14 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
             variant="link"
             size="sm"
             className="ml-2 h-auto p-0 text-inherit underline"
-            onClick={() =>
+            onClick={() => {
+              ctx.api.logger.info(
+                `Retrying dividend fetch for: ${errors.map((e) => e.symbol).join(", ")}`,
+              );
               queryClient.invalidateQueries({
                 queryKey: [MARKET_DIVIDENDS_QUERY_KEY],
-              })
-            }
+              });
+            }}
           >
             Retry
           </Button>

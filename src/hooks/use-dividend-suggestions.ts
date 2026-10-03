@@ -1,5 +1,6 @@
+import { useIsFetching } from "@tanstack/react-query";
 import type { AddonContext } from "@wealthfolio/addon-sdk";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { isDuplicate } from "../lib/is-duplicate";
 import {
   buildQuantityTimeline,
@@ -213,6 +214,33 @@ export function useDividendSuggestions(ctx: AddonContext): {
     !allProfilesLoaded ||
     !allDividendsLoaded ||
     !allPositionLoaded;
+
+  // Log a summary each time fetching settles — on first load and after
+  // refresh/retry, which refetch in the background without flipping isLoading.
+  const isFetching = useIsFetching() > 0;
+  const settled = !isLoading && !isFetching;
+  const wasSettled = useRef(false);
+  useEffect(() => {
+    if (settled && !wasSettled.current) {
+      const withDividends = [...dividendData.values()].filter(
+        (divs) => divs.length > 0,
+      ).length;
+      const failed = errors.length
+        ? `; failed: ${errors.map((e) => e.symbol).join(", ")}`
+        : "";
+      ctx.api.logger.info(
+        `Dividend fetch complete: ${dividendRequestMap.size} eligible holdings, ${withDividends} with dividends, ${suggestions.length} suggestions${failed}`,
+      );
+    }
+    wasSettled.current = settled;
+  }, [
+    settled,
+    dividendData,
+    dividendRequestMap,
+    errors,
+    suggestions,
+    ctx.api.logger,
+  ]);
 
   const accountNameMap = useMemo(
     () => new Map(accounts.map((a) => [a.id, a.name])),

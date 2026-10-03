@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import type { ActivityDetails, AddonContext } from "@wealthfolio/addon-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { useDividendSuggestions } from "./use-dividend-suggestions";
+import { useMarketDividends } from "./use-market-dividends";
 
 vi.mock("./use-accounts", () => ({
   useAccounts: vi.fn(() => ({
@@ -101,9 +103,19 @@ function makeCtx(): AddonContext {
   } as unknown as AddonContext;
 }
 
+function wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+
 describe("useDividendSuggestions", () => {
   it("keeps same ticker suggestions separate by asset id", () => {
-    const { result } = renderHook(() => useDividendSuggestions(makeCtx()));
+    const { result } = renderHook(() => useDividendSuggestions(makeCtx()), {
+      wrapper,
+    });
 
     expect(result.current.suggestions).toHaveLength(2);
     expect(result.current.suggestions.map((s) => s.assetId).sort()).toEqual([
@@ -111,5 +123,29 @@ describe("useDividendSuggestions", () => {
       "abc-tsx",
     ]);
     expect(new Set(result.current.suggestions.map((s) => s.id)).size).toBe(2);
+  });
+
+  it("logs a fetch summary once loading settles", () => {
+    const ctx = makeCtx();
+    renderHook(() => useDividendSuggestions(ctx), { wrapper });
+
+    expect(ctx.api.logger.info).toHaveBeenCalledTimes(1);
+    expect(ctx.api.logger.info).toHaveBeenCalledWith(
+      "Dividend fetch complete: 2 eligible holdings, 2 with dividends, 2 suggestions",
+    );
+  });
+
+  it("includes failed symbols in the fetch summary", () => {
+    vi.mocked(useMarketDividends).mockReturnValue({
+      data: new Map(),
+      allLoaded: true,
+      errors: [{ symbol: "ABC", error: new Error("boom") }],
+    });
+    const ctx = makeCtx();
+    renderHook(() => useDividendSuggestions(ctx), { wrapper });
+
+    expect(ctx.api.logger.info).toHaveBeenCalledWith(
+      "Dividend fetch complete: 2 eligible holdings, 0 with dividends, 0 suggestions; failed: ABC",
+    );
   });
 });
