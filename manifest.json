@@ -1,7 +1,7 @@
 {
   "id": "dividend-tracker-addon",
   "name": "Dividends Importer",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Find and add missing dividend activities by fetching historical market data",
   "author": "kwaich",
   "main": "dist/addon.js",

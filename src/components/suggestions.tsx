@@ -58,6 +58,13 @@ import { MARKET_DIVIDENDS_QUERY_KEY } from "../hooks/use-market-dividends";
 import { POSITION_ACTIVITIES_QUERY_KEY } from "../hooks/use-position-activities";
 import { useSaveDividends } from "../hooks/use-save-dividends";
 import type { DividendRow } from "../types";
+import {
+  effectiveTax,
+  loadWithholdingRate,
+  parseExistingTax,
+  saveWithholdingRate,
+} from "../lib/withholding";
+import { WithholdingRateInput } from "./withholding-rate-input";
 
 function DateRangePicker({
   dateRange,
@@ -209,6 +216,11 @@ function MobileRow({
                 ? "••••"
                 : formatAmount(item.amount, item.currency)}
             </div>
+            {!isBalanceHidden && item.tax != null && item.tax > 0 && (
+              <div className="text-muted-foreground text-xs tabular-nums">
+                −{formatAmount(item.tax, item.currency)}
+              </div>
+            )}
             <div className="text-muted-foreground max-w-[120px] truncate text-xs">
               {accountName}
             </div>
@@ -265,6 +277,13 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   );
   const { isBalanceHidden } = useBalancePrivacy();
   const isMobile = useIsMobile();
+  const [ratePct, setRatePct] = useState<number | undefined>(
+    loadWithholdingRate,
+  );
+  const handleRateChange = useCallback((rate: number | undefined) => {
+    setRatePct(rate);
+    saveWithholdingRate(rate);
+  }, []);
   // Invalidate via the provider's client, not ctx.api.query: in the iframe
   // sandbox the API proxy only reaches the host's cache, while the client
   // invalidates locally and mirrors to the host.
@@ -272,11 +291,14 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   // Background refetches keep isLoading false; drive the refresh spinner off
   // the fetch count so clicking refresh gives visible feedback.
   const isFetching = useIsFetching() > 0;
+  const refreshPending = useRef(false);
   const refreshSuggestions = useCallback(() => {
+    ctx.api.logger.info("Refreshing dividend suggestions");
+    refreshPending.current = true;
     for (const queryKey of SUGGESTION_QUERY_KEYS) {
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [queryClient]);
+  }, [queryClient, ctx.api.logger]);
 
   const {
     suggestions,
@@ -289,6 +311,19 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     useExistingDividends(ctx);
 
   const isLoading = suggestionsLoading || existingLoading;
+
+  // Toast once the refetch started by a refresh click settles (not on page
+  // load). Runs when isFetching drops back to false after the click.
+  useEffect(() => {
+    if (!refreshPending.current || isLoading || isFetching) return;
+    refreshPending.current = false;
+    const message = `Refreshed: ${suggestions.length} new suggestion${suggestions.length !== 1 ? "s" : ""}`;
+    if (errors.length) {
+      ctx.api.toast.warning(`${message}, ${errors.length} failed`);
+    } else {
+      ctx.api.toast.success(message);
+    }
+  }, [isLoading, isFetching, suggestions, errors, ctx.api.toast]);
 
   const existingRows = useMemo<DividendRow[]>(() => {
     if (!existingDivs) return [];
@@ -303,6 +338,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: a.accountId,
       accountName: a.accountName,
       availableAccountIds: [a.accountId],
+      tax: parseExistingTax(a.tax),
     }));
   }, [existingDivs]);
 
@@ -328,6 +364,43 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
 
   const { localData, setLocalData, onDataChange, dataKey } =
     useLocalDividendData(newRows, existingRows);
+
+  // Feed the grid rows whose `tax` is derived on the fly from the current
+  // amount, rate, and any per-row override. Tax is never materialised into
+  // stored state, so editing Amount or changing the rate keeps it correct
+  // without an effect that could clobber edits on an unrelated re-render.
+  const gridData = useMemo(
+    () =>
+      localData.map((r) =>
+        r.status === "new"
+          ? { ...r, tax: effectiveTax(r.amount, ratePct, r.taxOverride) }
+          : r,
+      ),
+    [localData, ratePct],
+  );
+  const gridDataRef = useRef(gridData);
+  gridDataRef.current = gridData;
+
+  // The grid hands back the full row set carrying the derived `tax` we fed it.
+  // A change to a new row's tax means the user edited it directly → store it
+  // as a per-row override; any other edit (e.g. Amount) leaves the override
+  // alone so tax re-derives. The transient derived `tax` is dropped so stored
+  // state holds only the override.
+  const handleDataChange = useCallback(
+    (next: DividendRow[]) => {
+      const prevById = new Map(gridDataRef.current.map((r) => [r.id, r]));
+      onDataChange(
+        next.map((r) => {
+          if (r.status !== "new") return r;
+          const prev = prevById.get(r.id);
+          const taxOverride =
+            prev && r.tax !== prev.tax ? (r.tax ?? undefined) : r.taxOverride;
+          return { ...r, tax: undefined, taxOverride };
+        }),
+      );
+    },
+    [onDataChange],
+  );
 
   const { save, saving } = useSaveDividends(ctx);
 
@@ -482,6 +555,26 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
         meta: { cell: { variant: "number" as const, step: 0.0001 } },
       },
       {
+        accessorKey: "tax",
+        header: "Tax",
+        size: 110,
+        enableSorting: false,
+        cell: ({ row }) => {
+          if (row.original.status === "existing") {
+            if (isBalanceHidden) return <span>••••</span>;
+            return (
+              <span className="text-sm tabular-nums">
+                {row.original.tax != null
+                  ? formatAmount(row.original.tax, row.original.currency)
+                  : "—"}
+              </span>
+            );
+          }
+          return undefined;
+        },
+        meta: { cell: { variant: "number" as const, step: 0.01 } },
+      },
+      {
         accessorKey: "currency",
         header: "Currency",
         size: 90,
@@ -538,7 +631,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
   }, []);
 
   const dataGrid = useDataGrid<DividendRow>({
-    data: localData,
+    data: gridData,
     columns,
     getRowId: (row) => row.id,
     enableRowSelection: (row) => row.original.status === "new",
@@ -557,7 +650,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           .includes(q)
       );
     },
-    onDataChange,
+    onDataChange: handleDataChange,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta: { getCellState } as any,
     initialState: {
@@ -657,6 +750,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
       accountId: item.accountId,
       amount: item.amount,
       payDate: item.payDate,
+      taxOverride: item.taxOverride,
     });
   };
 
@@ -696,11 +790,14 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
             variant="link"
             size="sm"
             className="ml-2 h-auto p-0 text-inherit underline"
-            onClick={() =>
+            onClick={() => {
+              ctx.api.logger.info(
+                `Retrying dividend fetch for: ${errors.map((e) => e.symbol).join(", ")}`,
+              );
               queryClient.invalidateQueries({
                 queryKey: [MARKET_DIVIDENDS_QUERY_KEY],
-              })
-            }
+              });
+            }}
           >
             Retry
           </Button>
@@ -826,6 +923,15 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                 </>
               )}
             </Button>
+          </div>
+
+          {/* Withholding rate — applies to all new rows */}
+          <div className="flex shrink-0 items-center">
+            <WithholdingRateInput
+              id="withholding-rate-mobile"
+              ratePct={ratePct}
+              onCommit={handleRateChange}
+            />
           </div>
 
           {/* Filter sheet — activity-style bottom sheet */}
@@ -1115,6 +1221,31 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <Label>Tax ({editRow?.currency})</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder={
+                      ratePct != null && editLocal.amount != null
+                        ? String(
+                            effectiveTax(editLocal.amount, ratePct, undefined),
+                          )
+                        : undefined
+                    }
+                    value={editLocal.taxOverride ?? ""}
+                    onChange={(e) =>
+                      setEditLocal((prev) => ({
+                        ...prev,
+                        taxOverride:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label>Pay Date (optional)</Label>
                   <Input
                     type="date"
@@ -1284,6 +1415,13 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               <Icons.Close className="ml-1" size={14} />
             </Button>
           )}
+          <div className="ml-auto flex items-center">
+            <WithholdingRateInput
+              id="withholding-rate"
+              ratePct={ratePct}
+              onCommit={handleRateChange}
+            />
+          </div>
         </div>
 
         {/* DataGrid */}
