@@ -42,7 +42,9 @@ src/
 ## Architecture
 
 ```
-addon.tsx → DividendPage → DividendSuggestions
+addon.tsx → DividendPage → DividendSuggestions (components/suggestions.tsx)
+                              ├── useLocalDividendData (editable row state)
+                              ├── useSaveDividends (writes activities)
                               ↓
                     useDividendSuggestions (orchestrator)
                     ├── useAccounts
@@ -82,13 +84,18 @@ addon.tsx → DividendPage → DividendSuggestions
 - **Dedup matching is many-to-one**: `isDuplicate` doesn't consume matched
   activities, so one recorded dividend can suppress several suggestions within
   the window. Keep the window cap (14 days) in mind for weekly payers.
+- **Manifest permissions**: every `ctx.api.*` call must be declared under
+  `permissions` in `manifest.json` (category + function + purpose).
+- **Version lives in two places**: bump `package.json` and `manifest.json`
+  together.
 
 ---
 
 ## Conventions
 
 - Files: kebab-case. Hooks: `use-` prefix, one per file.
-- Components: default exports, PascalCase. Hooks: named exports.
+- Components: PascalCase. Page/top-level components default-export; small
+  reusable components (e.g. `MatchWindowInput`) and hooks use named exports.
 - Tests: co-located `.test.ts`/`.test.tsx`. Vitest + Testing Library.
 - UI from `@wealthfolio/ui`. Host APIs from `@wealthfolio/addon-sdk`.
 - `type` imports for type-only. Relative imports preferred.
@@ -97,7 +104,7 @@ addon.tsx → DividendPage → DividendSuggestions
 ### TypeScript
 
 - Prefer interfaces over types, avoid enums
-- Functional components, named exports
+- Functional components
 - Directory names: lowercase-with-dashes
 
 ### Security
