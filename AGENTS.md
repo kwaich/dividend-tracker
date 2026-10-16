@@ -17,7 +17,7 @@ missing ones.
 src/
 ├── addon.tsx              # Entry point (enable/disable lifecycle)
 ├── pages/                 # Route pages (DividendPage)
-├── components/            # DividendSuggestions table (suggestions.tsx)
+├── components/            # DividendSuggestions table, toolbar inputs
 ├── hooks/                 # Data-fetching hooks (TanStack Query)
 ├── lib/                   # Pure utility functions
 └── types/                 # Shared interfaces
@@ -31,8 +31,10 @@ src/
 | Dev server              | `pnpm dev:server` |
 | Build                   | `pnpm build`      |
 | Tests                   | `pnpm test`       |
+| Tests (watch)           | `pnpm test:watch` |
 | Type check              | `pnpm type-check` |
 | Lint                    | `pnpm lint`       |
+| Format                  | `pnpm format`     |
 | Bundle for distribution | `pnpm bundle`     |
 
 ---
@@ -51,11 +53,35 @@ addon.tsx → DividendPage → DividendSuggestions
                     └── useExistingDividends
                               ↓
                     lib/quantity-timeline.ts (shares at date)
-                    lib/is-duplicate.ts (3-day dedup window)
+                    lib/is-duplicate.ts (dedup window, default ±3d)
                     types/index.ts (DividendRequest — provider-neutral fetch)
                               ↓
                     Host API via ctx.api.*
 ```
+
+---
+
+## Gotchas
+
+- **Host-provided deps**: `@wealthfolio/addon-sdk`, `@wealthfolio/ui`, React,
+  react-query, and date-fns are published on npm (standalone `pnpm install`
+  works) but are rollup `external`s at build time — the Wealthfolio host
+  resolves them at runtime (`hostProvidedDependencies` in `vite.config.ts`).
+  Don't bundle them.
+- **Addon lifecycle**: `addon.tsx` must export `enable(sdk)` and `disable()`
+  — Wealthfolio calls these on install/uninstall.
+- **Test mocks**: `src/test-utils/mock-wealthfolio-ui.tsx` mocks `@wealthfolio/ui`
+  for tests. Use it when testing components that consume Wealthfolio UI primitives.
+- **User settings**: persisted in `localStorage` (withholding rate in
+  `lib/withholding.ts`, match window in `lib/is-duplicate.ts`). Wrap every
+  access in try/catch — it can throw in the sandboxed iframe.
+- **Row edits reset**: any change to the set of suggestion IDs (refresh,
+  match-window change) makes `useLocalDividendData` replace `localData`,
+  dropping unsaved row edits and re-selecting all rows. Inputs that feed
+  `useDividendSuggestions` should commit on blur/Enter, not per keystroke.
+- **Dedup matching is many-to-one**: `isDuplicate` doesn't consume matched
+  activities, so one recorded dividend can suppress several suggestions within
+  the window. Keep the window cap (14 days) in mind for weekly payers.
 
 ---
 

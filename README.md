@@ -23,6 +23,8 @@ commands run standalone after a `pnpm install`.
   at each ex-date (not your current holdings)
 - Surfaces missing dividends as pre-checked suggestions you can review and
   bulk-add
+- Optional withholding rate (%) pre-fills each new row's tax; the last-used
+  rate is remembered
 
 ## Installation
 
@@ -53,6 +55,7 @@ The automated test suite covers:
 - addon registration and disable cleanup
 - page rendering
 - data hooks for accounts, holdings, asset profiles, market dividends, existing dividends, position activities, dividend suggestions, saving, and local dividend data
+- toolbar inputs for the withholding rate and match window
 - core utilities in `src/lib`
 
 For local iteration:
@@ -89,8 +92,11 @@ pnpm dev:server
 
 - Dividend data is fetched through Wealthfolio's configured market data
   providers. This addon requires Wealthfolio 3.6.0 or newer.
-- Dividends are deduplicated with a ±3 day window to account for ex-date vs.
-  pay-date differences between brokers and market data providers.
+- Dividends are deduplicated with a ±3 day window by default to account for
+  ex-date vs. pay-date differences between brokers and market data providers.
+  If your broker's dates differ by more, raise **Match ±days** on the
+  Suggestions tab (1–14 days, remembered between sessions). For weekly payers,
+  keep it under 7 so one recorded dividend doesn't hide the next payout.
 - No dividend data is stored by the addon itself — everything lives in
   Wealthfolio's standard activity records.
 
