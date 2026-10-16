@@ -14,7 +14,10 @@ import { useHoldingsByAccount } from "./use-holdings-by-account";
 import { useMarketDividends } from "./use-market-dividends";
 import { usePositionActivities } from "./use-position-activities";
 
-export function useDividendSuggestions(ctx: AddonContext): {
+export function useDividendSuggestions(
+  ctx: AddonContext,
+  windowDays?: number,
+): {
   suggestions: DividendSuggestion[];
   isLoading: boolean;
   accountNameMap: Map<string, string>;
@@ -174,6 +177,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
               existingDivs,
               {
                 allowSymbolFallback: !hasAmbiguousSymbolInAccount,
+                windowDays,
               },
             )
           ) {
@@ -205,6 +209,7 @@ export function useDividendSuggestions(ctx: AddonContext): {
     symbolAccountCounts,
     dividendData,
     quantityTimelines,
+    windowDays,
   ]);
 
   const isLoading =
