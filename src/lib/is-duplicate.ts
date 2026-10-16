@@ -15,7 +15,7 @@ interface DuplicateMatchOptions {
 }
 
 export function sanitizeWindowDays(value: number): number | undefined {
-  return Number.isInteger(value) && value >= 0 && value <= MAX_WINDOW_DAYS
+  return Number.isInteger(value) && value >= 1 && value <= MAX_WINDOW_DAYS
     ? value
     : undefined;
 }

@@ -19,11 +19,12 @@ export function MatchWindowInput({
 }: MatchWindowInputProps) {
   const [text, setText] = useState(String(days));
 
-  const handleChange = (raw: string) => {
-    setText(raw);
-    if (raw === "") return;
-    const v = sanitizeWindowDays(Number(raw));
-    if (v !== undefined) onCommit(v);
+  // Commit on blur/Enter, not per keystroke: each new window re-derives the
+  // suggestion rows, which resets unsaved row edits.
+  const commit = () => {
+    const v = sanitizeWindowDays(Number(text));
+    if (text !== "" && v !== undefined && v !== days) onCommit(v);
+    else setText(String(days));
   };
 
   return (
@@ -38,13 +39,16 @@ export function MatchWindowInput({
       <Input
         id={id}
         type="number"
-        min={0}
+        min={1}
         max={14}
         step={1}
         className="h-8 w-16"
         value={text}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={() => setText(String(days))}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+        }}
       />
     </div>
   );

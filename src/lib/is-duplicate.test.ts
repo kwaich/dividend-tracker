@@ -214,8 +214,10 @@ describe("match window persistence", () => {
     expect(loadMatchWindowDays()).toBe(3);
   });
 
-  it("accepts only whole days from 0 to 14", () => {
-    expect(sanitizeWindowDays(0)).toBe(0);
+  it("accepts only whole days from 1 to 14", () => {
+    // 0 would require millisecond-equal timestamps, which never happens.
+    expect(sanitizeWindowDays(0)).toBeUndefined();
+    expect(sanitizeWindowDays(1)).toBe(1);
     expect(sanitizeWindowDays(14)).toBe(14);
     expect(sanitizeWindowDays(15)).toBeUndefined();
     expect(sanitizeWindowDays(-1)).toBeUndefined();
