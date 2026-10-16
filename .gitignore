@@ -39,3 +39,5 @@ Thumbs.db
 
 # CocoIndex
 .cocoindex_code/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-16
+
+### Added
+
+- Configurable match window for duplicate detection. A "Match ±days" field
+  next to the withholding rate sets how many days apart a suggested dividend
+  and an existing activity can be and still count as the same payment
+  (1–14, default 3). Useful when broker dates differ from the ex-date by more
+  than 3 days. The setting is remembered between sessions (#10).
+
 ## [1.3.0] - 2026-07-11
 
 ### Added

@@ -64,6 +64,8 @@ import {
   parseExistingTax,
   saveWithholdingRate,
 } from "../lib/withholding";
+import { loadMatchWindowDays, saveMatchWindowDays } from "../lib/is-duplicate";
+import { MatchWindowInput } from "./match-window-input";
 import { WithholdingRateInput } from "./withholding-rate-input";
 
 function DateRangePicker({
@@ -284,6 +286,11 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     setRatePct(rate);
     saveWithholdingRate(rate);
   }, []);
+  const [windowDays, setWindowDays] = useState(loadMatchWindowDays);
+  const handleWindowChange = useCallback((days: number) => {
+    setWindowDays(days);
+    saveMatchWindowDays(days);
+  }, []);
   // Invalidate via the provider's client, not ctx.api.query: in the iframe
   // sandbox the API proxy only reaches the host's cache, while the client
   // invalidates locally and mirrors to the host.
@@ -305,7 +312,7 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
     isLoading: suggestionsLoading,
     accountNameMap,
     errors,
-  } = useDividendSuggestions(ctx);
+  } = useDividendSuggestions(ctx, windowDays);
 
   const { existingDivs, isLoading: existingLoading } =
     useExistingDividends(ctx);
@@ -926,7 +933,12 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
           </div>
 
           {/* Withholding rate — applies to all new rows */}
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-3">
+            <MatchWindowInput
+              id="match-window-mobile"
+              days={windowDays}
+              onCommit={handleWindowChange}
+            />
             <WithholdingRateInput
               id="withholding-rate-mobile"
               ratePct={ratePct}
@@ -1415,7 +1427,12 @@ export default function DividendSuggestions({ ctx }: DividendSuggestionsProps) {
               <Icons.Close className="ml-1" size={14} />
             </Button>
           )}
-          <div className="ml-auto flex items-center">
+          <div className="ml-auto flex items-center gap-3">
+            <MatchWindowInput
+              id="match-window"
+              days={windowDays}
+              onCommit={handleWindowChange}
+            />
             <WithholdingRateInput
               id="withholding-rate"
               ratePct={ratePct}

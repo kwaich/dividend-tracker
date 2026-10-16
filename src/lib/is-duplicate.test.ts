@@ -1,6 +1,13 @@
 import type { ActivityDetails } from "@wealthfolio/addon-sdk";
-import { describe, expect, it } from "vitest";
-import { isDuplicate, THREE_DAYS_MS } from "./is-duplicate";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  isDuplicate,
+  loadMatchWindowDays,
+  MATCH_WINDOW_STORAGE_KEY,
+  sanitizeWindowDays,
+  saveMatchWindowDays,
+  THREE_DAYS_MS,
+} from "./is-duplicate";
 
 /** Helper to create a minimal ActivityDetails stub for testing. */
 function makeActivity(
@@ -156,5 +163,64 @@ describe("isDuplicate", () => {
     expect(isDuplicate("msft-us", "MSFT", baseDateMs, "acct2", multi)).toBe(
       false,
     );
+  });
+});
+
+describe("isDuplicate windowDays option", () => {
+  const baseDateMs = new Date("2025-06-15T00:00:00Z").getTime();
+  const DAY = 24 * 60 * 60 * 1000;
+  const existing = [
+    makeActivity({
+      assetId: "aapl-us",
+      assetSymbol: "AAPL",
+      accountId: "acct1",
+      date: new Date("2025-06-15T00:00:00Z"),
+    }),
+  ];
+
+  it("matches a 5-day gap with a 5-day window", () => {
+    expect(
+      isDuplicate("aapl-us", "AAPL", baseDateMs + 5 * DAY, "acct1", existing, {
+        windowDays: 5,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not match a 6-day gap with a 5-day window", () => {
+    expect(
+      isDuplicate("aapl-us", "AAPL", baseDateMs + 6 * DAY, "acct1", existing, {
+        windowDays: 5,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("match window persistence", () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("defaults to 3 when nothing is stored", () => {
+    expect(loadMatchWindowDays()).toBe(3);
+  });
+
+  it("round-trips a saved window", () => {
+    saveMatchWindowDays(7);
+    expect(loadMatchWindowDays()).toBe(7);
+  });
+
+  it("falls back to 3 for out-of-range stored values", () => {
+    localStorage.setItem(MATCH_WINDOW_STORAGE_KEY, "99");
+    expect(loadMatchWindowDays()).toBe(3);
+  });
+
+  it("accepts only whole days from 1 to 14", () => {
+    // 0 would require millisecond-equal timestamps, which never happens.
+    expect(sanitizeWindowDays(0)).toBeUndefined();
+    expect(sanitizeWindowDays(1)).toBe(1);
+    expect(sanitizeWindowDays(14)).toBe(14);
+    expect(sanitizeWindowDays(15)).toBeUndefined();
+    expect(sanitizeWindowDays(-1)).toBeUndefined();
+    expect(sanitizeWindowDays(2.5)).toBeUndefined();
   });
 });
