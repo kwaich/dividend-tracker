@@ -9,8 +9,9 @@ interface MatchWindowInputProps {
 }
 
 /**
- * Days of slack when matching a suggested dividend to an existing activity
- * (broker dates can differ from the ex-date). Only valid values are committed.
+ * Days after the ex-date an existing activity can fall and still match a
+ * suggested dividend (brokers usually record the pay date). Only valid values
+ * are committed.
  */
 export function MatchWindowInput({
   id,
@@ -32,15 +33,15 @@ export function MatchWindowInput({
       <Label
         htmlFor={id}
         className="text-muted-foreground text-xs whitespace-nowrap"
-        title="Treat an existing dividend within this many days as already recorded"
+        title="Treat an existing dividend up to this many days after the ex-date as already recorded"
       >
-        Match ±days
+        Match days
       </Label>
       <Input
         id={id}
         type="number"
         min={1}
-        max={14}
+        max={31}
         step={1}
         className="h-8 w-16"
         value={text}

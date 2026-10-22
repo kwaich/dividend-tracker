@@ -92,11 +92,13 @@ pnpm dev:server
 
 - Dividend data is fetched through Wealthfolio's configured market data
   providers. This addon requires Wealthfolio 3.6.0 or newer.
-- Dividends are deduplicated with a ±3 day window by default to account for
-  ex-date vs. pay-date differences between brokers and market data providers.
-  If your broker's dates differ by more, raise **Match ±days** on the
-  Suggestions tab (1–14 days, remembered between sessions). For weekly payers,
-  keep it under 7 so one recorded dividend doesn't hide the next payout.
+- Suggestions are matched on the ex-date, but brokers usually record the pay
+  date. An existing dividend counts as already recorded if it falls up to
+  **Match days** after the ex-date (default 3) or up to 3 days before it. If
+  your broker's dates lag by more, raise **Match days** on the Suggestions tab
+  (1–31 days, remembered between sessions). Keep it below the payout interval
+  (under 7 for weekly payers, under 30 for monthly) so one recorded dividend
+  doesn't hide a missing one.
 - No dividend data is stored by the addon itself — everything lives in
   Wealthfolio's standard activity records.
 
