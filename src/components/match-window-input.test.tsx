@@ -53,7 +53,7 @@ describe("MatchWindowInput", () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
-  it.each(["0", "15", "2.5", ""])(
+  it.each(["0", "32", "2.5", ""])(
     "reverts invalid value %j on blur",
     (value) => {
       const onCommit = vi.fn();

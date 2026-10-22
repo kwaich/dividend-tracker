@@ -6,8 +6,11 @@ export const THREE_DAYS_MS = 3 * DAY_MS;
 export const MATCH_WINDOW_STORAGE_KEY = "dividend-tracker:match-window-days";
 const DEFAULT_WINDOW_DAYS = 3;
 // Matches aren't consumed, so a wide window could hide the next payout of a
-// weekly/monthly payer; cap it.
-const MAX_WINDOW_DAYS = 14;
+// weekly/monthly payer; cap it. 31 covers pay dates up to a month after ex-date.
+const MAX_WINDOW_DAYS = 31;
+// Pay dates never precede the ex-date, so only a little slack is needed
+// before it (provider/broker date drift).
+const MAX_DAYS_BEFORE = 3;
 
 interface DuplicateMatchOptions {
   allowSymbolFallback?: boolean;
@@ -59,7 +62,10 @@ export function isDuplicate(
 ): boolean {
   const { allowSymbolFallback = true, windowDays = DEFAULT_WINDOW_DAYS } =
     options;
-  const windowMs = windowDays * DAY_MS;
+  // An activity may be recorded up to windowDays after the ex-date (pay-date
+  // lag) but only a few days before it.
+  const afterMs = windowDays * DAY_MS;
+  const beforeMs = Math.min(windowDays, MAX_DAYS_BEFORE) * DAY_MS;
 
   return existing.some((a) => {
     if (a.accountId !== accountId) return false;
@@ -71,6 +77,6 @@ export function isDuplicate(
     if (!sameAsset) return false;
 
     const actMs = getEffectiveDateMs(a);
-    return Math.abs(actMs - dateMs) <= windowMs;
+    return actMs - dateMs <= afterMs && dateMs - actMs <= beforeMs;
   });
 }

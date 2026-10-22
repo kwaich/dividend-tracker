@@ -55,7 +55,7 @@ addon.tsx → DividendPage → DividendSuggestions (components/suggestions.tsx)
                     └── useExistingDividends
                               ↓
                     lib/quantity-timeline.ts (shares at date)
-                    lib/is-duplicate.ts (dedup window, default ±3d)
+                    lib/is-duplicate.ts (dedup window: ex-date −min(N,3)d to +Nd, default N=3)
                     types/index.ts (DividendRequest — provider-neutral fetch)
                               ↓
                     Host API via ctx.api.*
@@ -83,7 +83,7 @@ addon.tsx → DividendPage → DividendSuggestions (components/suggestions.tsx)
   `useDividendSuggestions` should commit on blur/Enter, not per keystroke.
 - **Dedup matching is many-to-one**: `isDuplicate` doesn't consume matched
   activities, so one recorded dividend can suppress several suggestions within
-  the window. Keep the window cap (14 days) in mind for weekly payers.
+  the window. Keep the window cap (31 days) in mind for weekly/monthly payers.
 - **Manifest permissions**: every `ctx.api.*` call must be declared under
   `permissions` in `manifest.json` (category + function + purpose).
 - **Version lives in two places**: bump `package.json` and `manifest.json`

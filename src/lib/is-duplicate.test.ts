@@ -178,19 +178,76 @@ describe("isDuplicate windowDays option", () => {
     }),
   ];
 
-  it("matches a 5-day gap with a 5-day window", () => {
+  // Activity recorded on the pay date, after the suggested ex-date.
+  it("matches an activity 5 days after the ex-date with a 5-day window", () => {
     expect(
-      isDuplicate("aapl-us", "AAPL", baseDateMs + 5 * DAY, "acct1", existing, {
+      isDuplicate("aapl-us", "AAPL", baseDateMs - 5 * DAY, "acct1", existing, {
         windowDays: 5,
       }),
     ).toBe(true);
   });
 
-  it("does not match a 6-day gap with a 5-day window", () => {
+  it("does not match an activity 6 days after the ex-date with a 5-day window", () => {
     expect(
-      isDuplicate("aapl-us", "AAPL", baseDateMs + 6 * DAY, "acct1", existing, {
+      isDuplicate("aapl-us", "AAPL", baseDateMs - 6 * DAY, "acct1", existing, {
         windowDays: 5,
       }),
+    ).toBe(false);
+  });
+
+  it("matches a 15-day pay-date lag with a 15-day window", () => {
+    expect(
+      isDuplicate("aapl-us", "AAPL", baseDateMs - 15 * DAY, "acct1", existing, {
+        windowDays: 15,
+      }),
+    ).toBe(true);
+  });
+
+  it("allows at most 3 days before the ex-date regardless of window", () => {
+    const opts = { windowDays: 15 };
+    expect(
+      isDuplicate(
+        "aapl-us",
+        "AAPL",
+        baseDateMs + 3 * DAY,
+        "acct1",
+        existing,
+        opts,
+      ),
+    ).toBe(true);
+    expect(
+      isDuplicate(
+        "aapl-us",
+        "AAPL",
+        baseDateMs + 4 * DAY,
+        "acct1",
+        existing,
+        opts,
+      ),
+    ).toBe(false);
+  });
+
+  it("limits days before the ex-date to the window when it is smaller", () => {
+    const opts = { windowDays: 1 };
+    expect(
+      isDuplicate(
+        "aapl-us",
+        "AAPL",
+        baseDateMs + 1 * DAY,
+        "acct1",
+        existing,
+        opts,
+      ),
+    ).toBe(true);
+    expect(
+      isDuplicate(
+        "aapl-us",
+        "AAPL",
+        baseDateMs + 2 * DAY,
+        "acct1",
+        existing,
+        opts,
+      ),
     ).toBe(false);
   });
 });
@@ -218,8 +275,8 @@ describe("match window persistence", () => {
     // 0 would require millisecond-equal timestamps, which never happens.
     expect(sanitizeWindowDays(0)).toBeUndefined();
     expect(sanitizeWindowDays(1)).toBe(1);
-    expect(sanitizeWindowDays(14)).toBe(14);
-    expect(sanitizeWindowDays(15)).toBeUndefined();
+    expect(sanitizeWindowDays(31)).toBe(31);
+    expect(sanitizeWindowDays(32)).toBeUndefined();
     expect(sanitizeWindowDays(-1)).toBeUndefined();
     expect(sanitizeWindowDays(2.5)).toBeUndefined();
   });

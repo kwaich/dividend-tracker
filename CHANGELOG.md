@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The match window now looks forward from the ex-date, since brokers record
+  dividends on the pay date. "Match days" (renamed from "Match ±days") sets how
+  many days after the ex-date an existing activity can fall; at most 3 days
+  before the ex-date are allowed. The limit is raised from 14 to 31 days so
+  long pay-date lags can be matched (#10).
+
 ## [1.3.1] - 2026-10-16
 
 ### Added
