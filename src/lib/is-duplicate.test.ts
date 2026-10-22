@@ -79,6 +79,21 @@ describe("isDuplicate", () => {
     ).toBe(false);
   });
 
+  // Activity recorded after the ex-date (pay-date lag) — the forward side.
+  it("returns true at forward boundary (activity exactly 3 days after ex-date)", () => {
+    const exDate = baseDateMs - THREE_DAYS_MS;
+    expect(isDuplicate("aapl-us", "AAPL", exDate, "acct1", existing)).toBe(
+      true,
+    );
+  });
+
+  it("returns false just past forward boundary (activity 3 days + 1ms after ex-date)", () => {
+    const exDate = baseDateMs - THREE_DAYS_MS - 1;
+    expect(isDuplicate("aapl-us", "AAPL", exDate, "acct1", existing)).toBe(
+      false,
+    );
+  });
+
   it("returns false outside 3-day window (4 days)", () => {
     const fourDaysAfter = baseDateMs + 4 * 24 * 60 * 60 * 1000;
     expect(
@@ -271,7 +286,7 @@ describe("match window persistence", () => {
     expect(loadMatchWindowDays()).toBe(3);
   });
 
-  it("accepts only whole days from 1 to 14", () => {
+  it("accepts only whole days from 1 to 31", () => {
     // 0 would require millisecond-equal timestamps, which never happens.
     expect(sanitizeWindowDays(0)).toBeUndefined();
     expect(sanitizeWindowDays(1)).toBe(1);
